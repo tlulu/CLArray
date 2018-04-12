@@ -41,7 +41,7 @@ $(OBJ_DIR):
 	mkdir -p $(OBJ_DIR)
 
 ${CLAUSE_EXEC}: ${COMMON_OBJECTS} ${TRANSFORM_OBJECTS} ${ALGORITHM_OBJECTS}
-	${CXX} ${CXXFLAGS} $^ -o $@
+	${CXX} ${CXXFLAGS} $^ -o $@ -lcltune
 
 ${TEST_EXEC}: ${COMMON_OBJECTS} ${TRANSFORM_OBJECTS} ${TEST_OBJECTS}
 	${CXX} ${CXXFLAGS} $^ -o $@ -lgtest

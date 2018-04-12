@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
-std::vector<std::vector<int>> readMatrixFromFile(std::string fileName);
+std::vector<std::vector<int32_t>> readMatrixFromFile(std::string fileName);
+std::string appendKernelHeader(std::string kernelFile, std::string kernelHeader);
 
 #endif

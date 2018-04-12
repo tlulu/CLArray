@@ -7,9 +7,8 @@
 class BaseArray {
 	public:
   	BaseArray(std::string name);
-  
-  	virtual std::string generateAccessorsAndSetters() = 0;
-  	virtual std::string generatePrefetch() = 0;
+  	virtual std::string generateOpenCLCode() = 0;
+  	virtual std::vector<int32_t> getArray() = 0;
 
   protected:
   	std::string getName();

@@ -8,20 +8,20 @@
 
 class PackedArray : public BaseArray {
 	public:
-	  PackedArray(std::string name, int bitSize, std::vector<uint32_t> a);
-	  std::vector<uint32_t> getPackedArray();
-	  uint32_t getElement(const int index);
-	  std::vector<uint32_t> unpack();
+	  PackedArray(std::string name, int bitSize, bool prefetch, std::vector<int32_t> a);
+	  virtual std::string generateOpenCLCode();
+	  virtual std::vector<int32_t> getArray(); // Returns the packed array.
 
-	  virtual std::string generateAccessorsAndSetters();
-	  virtual std::string generatePrefetch();
+	  int32_t elementAt(const int index);
+	  std::vector<int32_t> unpack();
 
 	private:
-	 	std::vector<uint32_t> pack(const std::vector<uint32_t>& a);
+	 	std::vector<int32_t> pack(const std::vector<int32_t>& a);
 
 	 	int bitSize_;
+	 	bool prefetch_;
 	 	int numElements_;
-	  std::vector<uint32_t> packedArray_;
+	  std::vector<int32_t> array_;
 };
 
 #endif

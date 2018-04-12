@@ -8,19 +8,19 @@
 
 class RowPaddedArray : public BaseArray {
 	public:
-	  RowPaddedArray(std::string name, std::vector<std::vector<uint32_t>> m);
-	  std::vector<uint32_t> get1DArray();
-	  uint32_t getElement(const int i, const int j);
+	  RowPaddedArray(std::string name, int bitSize, bool prefetch, std::vector<std::vector<int32_t>> m);
+	  virtual std::string generateOpenCLCode();
+	  virtual std::vector<int32_t> getArray();
 
-	  virtual std::string generateAccessorsAndSetters();
-	  virtual std::string generatePrefetch();
+	  int32_t elementAt(const int i, const int j);
 
 	private:
-		std::vector<uint32_t> transform(const std::vector<std::vector<uint32_t>>& m);
+		std::vector<int32_t> transform(const std::vector<std::vector<int32_t>>& m);
+		void init(std::vector<std::vector<int32_t>>* m);
 
 		int height_;
 		int width_;
-	  std::vector<uint32_t> array_;
+		std::vector<int32_t> array_;
 };
 
 #endif
