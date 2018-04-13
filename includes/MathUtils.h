@@ -6,6 +6,7 @@
 
 size_t ceilDiv(const size_t x, const size_t y);
 int getMaxValue(int numBits);
+void addPadding(std::vector<std::vector<int32_t>>* m);
 std::vector<int32_t> clauseInspection(std::vector<std::vector<int32_t>>& matrix, std::vector<int32_t>& assignments);
 
 #endif

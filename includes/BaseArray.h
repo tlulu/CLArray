@@ -7,6 +7,7 @@
 class BaseArray {
 	public:
   	BaseArray(std::string name);
+  	virtual ~BaseArray();
   	virtual std::string generateOpenCLCode() = 0;
   	virtual std::vector<int32_t> getArray() = 0;
 

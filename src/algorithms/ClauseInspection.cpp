@@ -39,9 +39,9 @@ void tuneKernel(std::vector<std::vector<int32_t>>& clauses,
   				std::string kernelHeader = "";
           std::vector<int32_t> result(M);
           std::unique_ptr<BaseArray> clauseDB;
-
+          
           if (transform == ROW_MAJOR) {
-            clauseDB = std::unique_ptr<RowPaddedArray>{new RowPaddedArray("Clause", bitSize, false, clauses)};
+            clauseDB = std::unique_ptr<RowPaddedArray>(new RowPaddedArray("clause", bitSize, false, clauses));
           } else if (transform == COL_MAJOR) {
             // TODO
           } else if (transform == OFFSET) {
@@ -49,18 +49,17 @@ void tuneKernel(std::vector<std::vector<int32_t>>& clauses,
           } else if (transform == MULTI_PAGE) {
             // TODO
           }
-
-          std::unique_ptr<PackedArray> lengthsArray(new PackedArray("Length", bitSize, prefetch, clauseLengths));
-          std::unique_ptr<PackedArray> assignmentsArray(new PackedArray("Assign", bitSize, prefetch, assignments));
+          
+          std::unique_ptr<PackedArray> lengthsArray(new PackedArray("length", bitSize, prefetch, clauseLengths));
+          std::unique_ptr<PackedArray> assignmentsArray(new PackedArray("assign", bitSize, prefetch, assignments));
 
           kernelHeader += clauseDB->generateOpenCLCode();
           kernelHeader += assignmentsArray->generateOpenCLCode();
           kernelHeader += lengthsArray->generateOpenCLCode();
 
           std::cout << "GENERATED OPENCL HEADER" << std::endl;
-          std::cout << kernelHeader << std::endl;
+          std::cout << kernelHeader;
 
-          // Tune kernel.
           std::string kernel = appendKernelHeader(KERNEL, kernelHeader);
           cltune::Tuner tuner(size_t{PLATFORM_ID}, size_t{DEVICE_ID});
           tuner.AddKernelFromString(kernel, KERNEL_NAME, {M}, {groupSize});
@@ -88,8 +87,8 @@ int main(int argc, char *argv[]) {
   std::vector<int32_t> assignments = readMatrixFromFile(ASSIGNMENT_DATA)[0];
 
   ArrayConfig2D clausesConfig;
-  clausesConfig.bitSizes = {2, 32};
-  clausesConfig.prefetches = {false, true};
+  clausesConfig.bitSizes = {32};
+  clausesConfig.prefetches = {false};
   clausesConfig.transforms = {ROW_MAJOR}; // COL_MAJOR, OFFSET, MULTI_PAGE
 
   tuneKernel(matrix, assignments, clausesConfig);

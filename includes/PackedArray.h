@@ -21,6 +21,7 @@ class PackedArray : public BaseArray {
 	 	int bitSize_;
 	 	bool prefetch_;
 	 	int numElements_;
+	 	int numCellsPerSection_;
 	  std::vector<int32_t> array_;
 };
 

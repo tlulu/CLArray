@@ -17,7 +17,8 @@ ALGORITHM_OBJECTS = \
 
 TEST_OBJECTS = \
 	tests/RunTests.o \
-	tests/PackedArrayTest.o
+	tests/PackedArrayTest.o \
+	tests/RowPaddedArrayTest.o
 
 CLAUSE_EXEC = $(OBJ_DIR)/clause
 TEST_EXEC = $(OBJ_DIR)/unitTests

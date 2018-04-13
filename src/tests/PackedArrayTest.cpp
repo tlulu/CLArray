@@ -4,6 +4,7 @@
 
 #include "gtest/gtest.h"
 #include <vector>
+#include <iostream>
 
 void packAndUnPack(const std::vector<int32_t>& vec, const int bitSize, std::vector<int32_t>& out) {
 	std::unique_ptr<PackedArray> packedArray(new PackedArray("packed", bitSize, false, vec));
@@ -16,12 +17,10 @@ void packAndUnPack(const std::vector<int32_t>& vec, const int bitSize, std::vect
 
 TEST(PackedArrayTest, base) {
 	int bitSize = 32;
-	std::vector<int32_t> vec = {1, 2, 3, 1, 3};
-	std::vector<int32_t> unpacked;
+	std::vector<int32_t> vec = {-1, 0, 3, 1, 3};
+	std::unique_ptr<PackedArray> packedArray(new PackedArray("packed", bitSize, false, vec));
 
-	packAndUnPack(vec, bitSize, unpacked);
-
-	EXPECT_EQ(vec, unpacked);
+	EXPECT_EQ(vec, packedArray->getArray());
 }
 
 TEST(PackedArrayTest, smallIntsOneWord) {
