@@ -8,7 +8,7 @@ COMMON_OBJECTS = \
 	common/IOUtils.o
 
 TRANSFORM_OBJECTS = \
-	transforms/BaseArray.o \
+	transforms/CLArray.o \
 	transforms/PackedArray.o \
 	transforms/RowPaddedArray.o
 

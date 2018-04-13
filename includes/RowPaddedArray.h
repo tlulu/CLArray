@@ -1,13 +1,13 @@
 #ifndef __ROW_PADDING_ARRAY_H__
 #define __ROW_PADDING_ARRAY_H__
 
-#include "BaseArray.h"
+#include "CLArray.h"
 #include "PackedArray.h"
 
 #include <string>
 #include <vector>
 
-class RowPaddedArray : public BaseArray {
+class RowPaddedArray : public CLArray {
 	public:
 	  RowPaddedArray(std::string name, int bitSize, bool prefetch, std::vector<std::vector<int32_t>> m);
 	  virtual std::string generateOpenCLCode();

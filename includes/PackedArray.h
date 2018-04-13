@@ -1,12 +1,12 @@
 #ifndef __PACKED_ARRAY_H__
 #define __PACKED_ARRAY_H__
 
-#include "BaseArray.h"
+#include "CLArray.h"
 
 #include <string>
 #include <vector>
 
-class PackedArray : public BaseArray {
+class PackedArray : public CLArray {
 	public:
 	  PackedArray(std::string name, int bitSize, bool prefetch, std::vector<int32_t> a);
 	  virtual std::string generateOpenCLCode();

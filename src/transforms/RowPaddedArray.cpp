@@ -5,7 +5,7 @@
 #include <sstream>
 
 RowPaddedArray::RowPaddedArray(std::string name, int bitSize, bool prefetch, std::vector<std::vector<int32_t>> m)
-	: BaseArray(name), height_(m.size()) {
+	: CLArray(name), height_(m.size()) {
       addPadding(&m);
 
       width_ = m.at(0).size();

@@ -1,4 +1,4 @@
-#include "../../includes/BaseArray.h"
+#include "../../includes/CLArray.h"
 #include "../../includes/PackedArray.h"
 #include "../../includes/RowPaddedArray.h"
 #include "../../includes/MathUtils.h"
@@ -38,7 +38,7 @@ void tuneKernel(std::vector<std::vector<int32_t>>& clauses,
   			for (auto transform : clausesConfig.transforms) {
   				std::string kernelHeader = "";
           std::vector<int32_t> result(M);
-          std::unique_ptr<BaseArray> clauseDB;
+          std::unique_ptr<CLArray> clauseDB;
           
           if (transform == ROW_MAJOR) {
             clauseDB = std::unique_ptr<RowPaddedArray>(new RowPaddedArray("clause", bitSize, false, clauses));

@@ -6,7 +6,7 @@
 #include <sstream>
 
 PackedArray::PackedArray(std::string name, int bitSize, bool prefetch, std::vector<int32_t> a)
-  : BaseArray(name), 
+  : CLArray(name), 
   	bitSize_(bitSize),
   	prefetch_(prefetch),
   	numElements_(a.size()),

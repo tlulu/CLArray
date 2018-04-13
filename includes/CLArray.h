@@ -1,13 +1,13 @@
-#ifndef __BASE_ARRAY_H__
-#define __BASE_ARRAY_H__
+#ifndef __CL_ARRAY_H__
+#define __CL_ARRAY_H__
 
 #include <string>
 #include <vector>
 
-class BaseArray {
+class CLArray {
 	public:
-  	BaseArray(std::string name);
-  	virtual ~BaseArray();
+  	CLArray(std::string name);
+  	virtual ~CLArray();
   	virtual std::string generateOpenCLCode() = 0;
   	virtual std::vector<int32_t> getArray() = 0;
 
