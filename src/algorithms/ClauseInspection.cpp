@@ -18,7 +18,7 @@ const std::string REF_KERNEL_NAME = "clause_inspection_ref";
 const std::string DATA = "../data/small_clause.test";
 const std::string ASSIGNMENT_DATA = "../data/assign.test";
 
-const std::vector<size_t> GROUP_SIZES = {16, 32};
+const std::vector<size_t> GROUP_SIZES = {32};
 
 void tuneKernel(std::vector<std::vector<int32_t>>& clauses, 
   std::vector<int32_t>& assignments,

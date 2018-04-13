@@ -17,7 +17,7 @@ void packAndUnPack(const std::vector<int32_t>& vec, const int bitSize, std::vect
 
 TEST(PackedArrayTest, base) {
 	int bitSize = 32;
-	std::vector<int32_t> vec = {-1, 0, 3, 1, 3};
+	std::vector<int32_t> vec = {1, 0, 3, 1, 3};
 	std::unique_ptr<PackedArray> packedArray(new PackedArray("packed", bitSize, false, vec));
 
 	EXPECT_EQ(vec, packedArray->getArray());
@@ -51,4 +51,16 @@ TEST(PackedArrayTest, smallestIntsOneWord) {
 	packAndUnPack(vec, bitSize, unpacked);
 
 	EXPECT_EQ(vec, unpacked);
+}
+
+TEST(PackedArrayTest, elementAt) {
+	int bitSize = 2;
+	std::vector<int32_t> vec = {1, 2, 3, 1, 3, 2, 1, 0, 3, 2, 1, 3, 1, 1, 3, 2, 2, 2, 0, 1};
+	std::unique_ptr<PackedArray> packedArray(new PackedArray("packed", bitSize, false, vec));
+
+	EXPECT_EQ(packedArray->elementAt(0), 1);
+	EXPECT_EQ(packedArray->elementAt(8), 3);
+	EXPECT_EQ(packedArray->elementAt(16), 2);
+	EXPECT_EQ(packedArray->elementAt(17), 2);
+	EXPECT_EQ(packedArray->elementAt(19), 1);
 }
