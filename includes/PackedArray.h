@@ -17,11 +17,14 @@ class PackedArray : public CLArray {
 
 	private:
 	 	std::vector<int32_t> pack(const std::vector<int32_t>& a);
+	 	int getRemainingWordSize(const int index);
+	 	int getPhysicalIndex(const int index);
 
 	 	int bitSize_;
 	 	bool prefetch_;
 	 	int numElements_;
-	 	int numCellsPerSection_;
+	 	int numCellsPerWord_;
+	 	int cellMask_;
 	  std::vector<int32_t> array_;
 };
 
