@@ -29,8 +29,24 @@ std::string PackedArray::generateOpenCLCode() {
 		// TODO
 	}
 
+	// Bit-packing constants
+	ss << "#define name_bit_size " << bitSize_ << std::endl;
+	ss << "#define name_num_cells_per_word " << numCellsPerWord_ << std::endl;
+	ss << "#define name_cell_mask " << cellMask_ << std::endl;
+	ss << std::endl;
+
+	// Helper
+	ss << "int name_get_remaining_word_size(const int index) {" << std::endl;
+	ss << "  return 32 - name_bit_size * ((index % name_num_cells_per_word) + 1);" << std::endl;
+	ss << "}" << std::endl;
+	ss << std::endl;
+
+	// Accessor
 	ss << "int name_get(__global const int* arr, const int index) {" << std::endl;
-	ss << "  return arr[index];" << std::endl;
+	ss << "  int physical_index = index / name_num_cells_per_word;" << std::endl;
+	ss << "  int word = arr[physical_index];" << std::endl;
+	ss << "  int shift = name_get_remaining_word_size(index);" << std::endl;
+	ss << "  return (word >> shift) & name_cell_mask;" << std::endl;
 	ss << "}" << std::endl;
 	ss << std::endl;
 

@@ -36,12 +36,13 @@ void tuneKernel(std::vector<std::vector<int32_t>>& clauses,
   	for (auto bitSize : clausesConfig.bitSizes) {
   		for (auto prefetch : clausesConfig.prefetches) {
   			for (auto transform : clausesConfig.transforms) {
+          std::cout << "TUNING PARAMETERS: Groupsize: " << groupSize << " BitSize: " << bitSize << " Prefetch: " << prefetch << std::endl;
   				std::string kernelHeader = "";
           std::vector<int32_t> result(M);
           std::unique_ptr<CLArray> clauseDB;
           
           if (transform == ROW_MAJOR) {
-            clauseDB = std::unique_ptr<RowPaddedArray>(new RowPaddedArray("clause", bitSize, false, clauses));
+            clauseDB = std::unique_ptr<RowPaddedArray>(new RowPaddedArray("clauses", 32, false, clauses));
           } else if (transform == COL_MAJOR) {
             // TODO
           } else if (transform == OFFSET) {
@@ -50,8 +51,8 @@ void tuneKernel(std::vector<std::vector<int32_t>>& clauses,
             // TODO
           }
           
-          std::unique_ptr<PackedArray> lengthsArray(new PackedArray("length", bitSize, prefetch, clauseLengths));
-          std::unique_ptr<PackedArray> assignmentsArray(new PackedArray("assign", bitSize, prefetch, assignments));
+          std::unique_ptr<PackedArray> lengthsArray(new PackedArray("lengths", 32, prefetch, clauseLengths));
+          std::unique_ptr<PackedArray> assignmentsArray(new PackedArray("assignments", bitSize, prefetch, assignments));
 
           kernelHeader += clauseDB->generateOpenCLCode();
           kernelHeader += assignmentsArray->generateOpenCLCode();
@@ -87,7 +88,7 @@ int main(int argc, char *argv[]) {
   std::vector<int32_t> assignments = readMatrixFromFile(ASSIGNMENT_DATA)[0];
 
   ArrayConfig2D clausesConfig;
-  clausesConfig.bitSizes = {32};
+  clausesConfig.bitSizes = {2, 32};
   clausesConfig.prefetches = {false};
   clausesConfig.transforms = {ROW_MAJOR}; // COL_MAJOR, OFFSET, MULTI_PAGE
 
