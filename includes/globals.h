@@ -1,6 +1,7 @@
 #ifndef __GLOBALS_H__
 #define __GLOBALS_H__
 
+#include <string>
 #include <vector>
 
 // OpenCL constants
@@ -20,6 +21,11 @@
 #define OFFSET 2
 #define MULTI_PAGE 3
 
+struct ArrayConfig1D {
+  std::vector<int> bitSizes;
+  std::vector<bool> prefetches;
+};
+
 struct ArrayConfig2D {
 	std::vector<int> bitSizes;
 	std::vector<bool> prefetches;
@@ -27,6 +33,15 @@ struct ArrayConfig2D {
 };
 
 #define NUMRUNS 20
+
+struct TunerResult {
+  int workGroupSize;
+  int bitSize;
+  bool prefetch;
+  std::string transform;
+  double executionTime;
+  double dataTransferTime;
+};
 
 // Clause inspection constants
 enum Assignment {

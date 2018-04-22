@@ -1,4 +1,5 @@
 #include "../../includes/IOUtils.h"
+#include "../../includes/json11.hpp"
 
 #include <fstream>
 #include <sstream>
@@ -45,4 +46,13 @@ std::string replaceString(std::string subject,
     pos += replace.length();
   }
   return subject;
+}
+
+double getExecutionResult(std::string jsonFile) {
+  std::ifstream ifStreamJsonFile{jsonFile};
+  std::string jsonString{std::istreambuf_iterator<char>(ifStreamJsonFile), std::istreambuf_iterator<char>()};
+  std::string jsonError;
+  json11::Json json = json11::Json::parse(jsonString, jsonError, json11::JsonParse::STANDARD);
+
+  return json["results"][0]["time"].number_value();
 }

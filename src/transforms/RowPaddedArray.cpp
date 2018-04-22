@@ -18,7 +18,6 @@ std::string RowPaddedArray::generateOpenCLCode() {
   ss << "#define name_width " << width_ << std::endl;
   ss << "#define name_height " << height_ << std::endl;
   ss << "#define _2D_name_get(arr, i, j) name_get(arr, i*name_width+j)" << std::endl;
-  ss << "#define _2D_name_set(arr, i, j, v) name_set(arr, i*name_width+j, v)" << std::endl;
   ss << std::endl;
 
   std::string output = ss.str();

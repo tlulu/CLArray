@@ -13,7 +13,7 @@ __kernel void clause_inspection(const int M,
   enum Assignment {TRUE = 1, FALSE = 0, UNDEF = 2};
   enum Result {SAT = 1, CONFLICT = 2, UNIT = 3, WASTE = 4, UNRES = 5};
 
-  const int N = lengths_get(Lengths, i);
+  const int N = Lengths[i];
   int result = UNRES;
   int count = 0;
   for (int k = 0; k < N; k++) {
