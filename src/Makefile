@@ -41,6 +41,7 @@ all: $(OBJ_DIR) ${EXECS}
 
 clean:
 	rm -f ${OBJECTS} ${EXECS} ${DEPENDS}
+	rm -r $(OBJ_DIR)
 
 $(OBJ_DIR):
 	mkdir -p $(OBJ_DIR)
