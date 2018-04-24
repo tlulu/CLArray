@@ -16,10 +16,12 @@
 // Tuner constants
 #define MAX_BITSIZE 32
 
-#define ROW_MAJOR 0
-#define COL_MAJOR 1
-#define OFFSET 2
-#define MULTI_PAGE 3
+enum Transform {
+  ROW_MAJOR = 1,
+  COL_MAJOR = 2,
+  OFFSET = 3,
+  MULTI_PAGE = 4
+};
 
 struct ArrayConfig1D {
   std::vector<int> bitSizes;
@@ -29,19 +31,10 @@ struct ArrayConfig1D {
 struct ArrayConfig2D {
 	std::vector<int> bitSizes;
 	std::vector<bool> prefetches;
-	std::vector<int> transforms;
+	std::vector<Transform> transforms;
 };
 
 #define NUMRUNS 20
-
-struct TunerResult {
-  int workGroupSize;
-  int bitSize;
-  bool prefetch;
-  std::string transform;
-  double executionTime;
-  double dataTransferTime;
-};
 
 // Clause inspection constants
 enum Assignment {

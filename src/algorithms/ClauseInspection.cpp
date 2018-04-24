@@ -10,6 +10,7 @@
 #include <vector>
 #include <string>
 #include <chrono>
+#include <iomanip>
 
 const std::string KERNEL = "../kernels/clause_inspection.cl";
 const std::string KERNEL_NAME = "clause_inspection";
@@ -19,15 +20,55 @@ const std::string REF_KERNEL_NAME = "clause_inspection_ref";
 const std::string DATA = "../data/small_clause.test";
 const std::string ASSIGNMENT_DATA = "../data/assign.test";
 
-const std::vector<size_t> GROUP_SIZES = {32};
-
 const std::string OUTPUT_JSON_FILE = "bin/tuner_result.json";
+
+struct TunerResult {
+  int workGroupSize;
+  int assignmentsBitSize;
+  bool assignmentsPrefetch;
+  int clausesBitSize;
+  bool clausesPrefetch;
+  Transform clausesTransform;
+  double executionTime;
+  double dataTransferTime;
+};
+
 std::vector<TunerResult> tunerResults;
+
+void printResults() {
+  const int width = 12;
+
+  std::cout << "Summary:" << std::endl;
+  std::cout << std::left << std::setw(width) << "GrpSize";
+  std::cout << std::left << std::setw(width) << "(Bitsize";
+  std::cout << std::left << std::setw(width) << "Prefch)";
+  std::cout << std::left << std::setw(width) << "(Bitsize";
+  std::cout << std::left << std::setw(width) << "Prefch";
+  std::cout << std::left << std::setw(width) << "Transform)";
+  std::cout << std::left << std::setw(width) << "Transfer";
+  std::cout << std::left << std::setw(width) << "Execution";
+  std::cout << std::left << std::setw(width) << "Total";
+  std::cout << std::endl;
+
+  for (size_t i = 0; i < tunerResults.size(); i++) {
+    std::cout << std::left << std::setw(width) << tunerResults.at(i).workGroupSize;
+    std::cout << std::left << std::setw(width) << tunerResults.at(i).assignmentsBitSize;
+    std::cout << std::left << std::setw(width) << tunerResults.at(i).assignmentsPrefetch;
+    std::cout << std::left << std::setw(width) << tunerResults.at(i).clausesBitSize;
+    std::cout << std::left << std::setw(width) << tunerResults.at(i).clausesPrefetch;
+    std::cout << std::left << std::setw(width) << tunerResults.at(i).clausesTransform;
+    std::cout << std::left << std::setw(width) << tunerResults.at(i).dataTransferTime;
+    std::cout << std::left << std::setw(width) << tunerResults.at(i).executionTime;
+    std::cout << std::left << std::setw(width) << (tunerResults.at(i).dataTransferTime + tunerResults.at(i).executionTime);
+    std::cout << std::endl;
+  }
+}
 
 void tuneKernel(std::vector<std::vector<int32_t>>& clauses,
   ArrayConfig2D& clausesConfig,
   std::vector<int32_t>& assignments,
   ArrayConfig1D& assignmentsConfig) {
+  const std::vector<size_t> GROUP_SIZES = {32};
   const size_t M = clauses.size();
   std::vector<int32_t> clauseLengths(M);
 
@@ -50,13 +91,13 @@ void tuneKernel(std::vector<std::vector<int32_t>>& clauses,
               std::vector<int32_t> result(M);
               std::unique_ptr<CLArray> clauseDB;
               
-              if (clausesTransform == ROW_MAJOR) {
+              if (clausesTransform == Transform::ROW_MAJOR) {
                 clauseDB = std::unique_ptr<RowPaddedArray>(new RowPaddedArray("clauses", clausesBitSize, clausesPrefetch, clauses));
-              } else if (clausesTransform == COL_MAJOR) {
+              } else if (clausesTransform == Transform::COL_MAJOR) {
                 // TODO
-              } else if (clausesTransform == OFFSET) {
+              } else if (clausesTransform == Transform::OFFSET) {
                 // TODO
-              } else if (clausesTransform == MULTI_PAGE) {
+              } else if (clausesTransform == Transform::MULTI_PAGE) {
                 // TODO
               }
               
@@ -88,9 +129,11 @@ void tuneKernel(std::vector<std::vector<int32_t>>& clauses,
               // Store result
               TunerResult tunerResult;
               tunerResult.workGroupSize = groupSize;
-              tunerResult.bitSize = assignmentsBitSize;
-              tunerResult.prefetch = assignmentsPrefetch;
-              tunerResult.transform = "Row";
+              tunerResult.assignmentsBitSize = assignmentsBitSize;
+              tunerResult.assignmentsPrefetch = assignmentsPrefetch;
+              tunerResult.clausesBitSize = clausesBitSize;
+              tunerResult.clausesPrefetch = clausesPrefetch;
+              tunerResult.clausesTransform = clausesTransform;
               tunerResult.dataTransferTime = dataTransferTime;
               tunerResult.executionTime = getExecutionResult(OUTPUT_JSON_FILE);
               tunerResults.push_back(tunerResult);
@@ -101,16 +144,7 @@ void tuneKernel(std::vector<std::vector<int32_t>>& clauses,
   	}
   }
 
-  std::cout << "Summary:\nGrpSize\tBitsize\tPrefch\tTransform\tTransfer\tExecution\tTotal" << std::endl;
-  for (size_t i = 0; i < tunerResults.size(); i++) {
-    std::cout << tunerResults.at(i).workGroupSize << "\t"
-    << tunerResults.at(i).bitSize << "\t"
-    << tunerResults.at(i).prefetch << "\t"
-    << tunerResults.at(i).transform << "\t\t"
-    << tunerResults.at(i).dataTransferTime << "\t\t"
-    << tunerResults.at(i).executionTime << "\t\t"
-    << (tunerResults.at(i).dataTransferTime + tunerResults.at(i).executionTime) << std::endl;
-  }
+  printResults();
 }
 
 int main(int argc, char *argv[]) {
@@ -120,7 +154,7 @@ int main(int argc, char *argv[]) {
   ArrayConfig2D clausesConfig;
   clausesConfig.bitSizes = {32};
   clausesConfig.prefetches = {false};
-  clausesConfig.transforms = {ROW_MAJOR}; // COL_MAJOR, OFFSET, MULTI_PAGE
+  clausesConfig.transforms = {Transform::ROW_MAJOR};
 
   ArrayConfig1D assignmentsConfig;
   assignmentsConfig.bitSizes = {2, 32};

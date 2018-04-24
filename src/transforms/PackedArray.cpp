@@ -29,6 +29,31 @@ std::string PackedArray::generateOpenCLCode() {
 		// TODO
 	}
 
+	if (bitSize_ == MAX_BITSIZE) {
+		ss << generateAccessorCode();
+	} else {
+		ss << generateBitPackingCode();
+	}
+
+	std::string output = ss.str();
+  output = replaceString(output, "name", getName());
+  return output;
+}
+
+std::string PackedArray::generateAccessorCode() {
+	std::stringstream ss;
+
+	ss << "int name_get(__global const int* arr, const int index) {" << std::endl;
+	ss << "  return arr[index];" << std::endl;
+	ss << "}" << std::endl;
+	ss << std::endl;
+
+	return ss.str();
+}
+
+std::string PackedArray::generateBitPackingCode() {
+	std::stringstream ss;
+
 	// Bit-packing constants
 	ss << "#define name_bit_size " << bitSize_ << std::endl;
 	ss << "#define name_num_cells_per_word " << numCellsPerWord_ << std::endl;
@@ -50,9 +75,7 @@ std::string PackedArray::generateOpenCLCode() {
 	ss << "}" << std::endl;
 	ss << std::endl;
 
-	std::string output = ss.str();
-  output = replaceString(output, "name", getName());
-  return output;
+	return ss.str();
 }
 
 std::vector<int32_t> PackedArray::getArray() {

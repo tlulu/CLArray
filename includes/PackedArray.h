@@ -19,6 +19,8 @@ class PackedArray : public CLArray {
 	 	std::vector<int32_t> pack(const std::vector<int32_t>& a);
 	 	int getRemainingWordSize(const int index);
 	 	int getPhysicalIndex(const int index);
+	 	std::string generateAccessorCode();
+	 	std::string generateBitPackingCode();
 
 	 	int bitSize_;
 	 	bool prefetch_;
