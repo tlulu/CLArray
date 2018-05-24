@@ -9,7 +9,8 @@
 
 class RowPaddedArray : public CLArray {
 	public:
-	  RowPaddedArray(std::string name, int bitSize, bool prefetch, std::vector<std::vector<int32_t>> m);
+	  RowPaddedArray(std::string name, int bitSize, bool prefetch, std::vector<std::vector<int32_t>> m, 
+	  	int workgroupSizeX = 1, int workgroupSizeY = 1);
 	  virtual std::string generateOpenCLCode();
 	  virtual std::vector<int32_t> getArray();
 	  virtual int32_t elementAt(const int i, const int j);

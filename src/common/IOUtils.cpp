@@ -56,3 +56,17 @@ double getExecutionResult(std::string jsonFile) {
 
   return json["results"][0]["time"].number_value();
 }
+
+std::string transformToString(Transform transform) {
+  if (transform == ROW_MAJOR) {
+    return "row";
+  } else if (transform == COL_MAJOR) {
+    return "col";
+  } else if (transform == OFFSET) {
+    return "offset";
+  } else if (transform == MULTI_PAGE) {
+    return "multipage";
+  } else {
+    return "none";
+  }
+}

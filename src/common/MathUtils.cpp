@@ -6,7 +6,10 @@ size_t ceilDiv(const size_t x, const size_t y) {
 }
 
 int getMaxValue(int numBits) {
-	return (int)pow(2, numBits) - 1;
+  if (numBits >= 32) {
+    return -1;
+  }
+	return (1 << numBits) - 1;
 }
 
 void addPadding(std::vector<std::vector<int32_t>>* m) {

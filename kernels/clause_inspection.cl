@@ -4,21 +4,23 @@ __kernel void clause_inspection(const int M,
 											const __global int* Lengths,
                       const __global int* Target,
                       __global int* C) {
-  
+
+  enum Assignment {TRUE = 1, FALSE = 0, UNDEF = 2};
+  enum Result {SAT = 1, CONFLICT = 2, UNIT = 3, WASTE = 4, UNRES = 5};
+
+  INIT_LOCAL_assignments(Assignments, Local_Assignments);
+
   const int i = get_global_id(0);
   if (i >= M) {
     return;
   }
-
-  enum Assignment {TRUE = 1, FALSE = 0, UNDEF = 2};
-  enum Result {SAT = 1, CONFLICT = 2, UNIT = 3, WASTE = 4, UNRES = 5};
 
   const int N = Lengths[i];
   int result = UNRES;
   int count = 0;
   for (int k = 0; k < N; k++) {
     int lit = _2D_clauses_get(Clauses, i, k);
-    int val = assignments_get(Assignments, lit);
+    int val = assignments_get(Local_Assignments, lit);
     if (val == UNDEF) {
       count++;
     } else if (val == TRUE) {

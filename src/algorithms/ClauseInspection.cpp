@@ -53,10 +53,10 @@ void printResults() {
   for (size_t i = 0; i < tunerResults.size(); i++) {
     std::cout << std::left << std::setw(width) << tunerResults.at(i).workGroupSize;
     std::cout << std::left << std::setw(width) << tunerResults.at(i).assignmentsBitSize;
-    std::cout << std::left << std::setw(width) << tunerResults.at(i).assignmentsPrefetch;
+    std::cout << std::left << std::setw(width) << (tunerResults.at(i).assignmentsPrefetch ? "true" : "false");
     std::cout << std::left << std::setw(width) << tunerResults.at(i).clausesBitSize;
-    std::cout << std::left << std::setw(width) << tunerResults.at(i).clausesPrefetch;
-    std::cout << std::left << std::setw(width) << tunerResults.at(i).clausesTransform;
+    std::cout << std::left << std::setw(width) << (tunerResults.at(i).clausesPrefetch ? "true" : "false");
+    std::cout << std::left << std::setw(width) << transformToString(tunerResults.at(i).clausesTransform);
     std::cout << std::left << std::setw(width) << tunerResults.at(i).dataTransferTime;
     std::cout << std::left << std::setw(width) << tunerResults.at(i).executionTime;
     std::cout << std::left << std::setw(width) << (tunerResults.at(i).dataTransferTime + tunerResults.at(i).executionTime);
@@ -68,7 +68,7 @@ void tuneKernel(std::vector<std::vector<int32_t>>& clauses,
   ArrayConfig2D& clausesConfig,
   std::vector<int32_t>& assignments,
   ArrayConfig1D& assignmentsConfig) {
-  const std::vector<size_t> GROUP_SIZES = {32};
+  const std::vector<size_t> WORKGROUP_SIZES = {32};
   const size_t M = clauses.size();
   std::vector<int32_t> clauseLengths(M);
 
@@ -78,7 +78,7 @@ void tuneKernel(std::vector<std::vector<int32_t>>& clauses,
 
   std::vector<int32_t> target = clauseInspection(clauses, assignments);
 
-  for (auto groupSize : GROUP_SIZES) {
+  for (auto workGroupSize : WORKGROUP_SIZES) {
   	for (auto assignmentsBitSize : assignmentsConfig.bitSizes) {
   		for (auto assignmentsPrefetch : assignmentsConfig.prefetches) {
         for (auto clausesBitSize : clausesConfig.bitSizes) {
@@ -92,7 +92,8 @@ void tuneKernel(std::vector<std::vector<int32_t>>& clauses,
               std::unique_ptr<CLArray> clauseDB;
               
               if (clausesTransform == Transform::ROW_MAJOR) {
-                clauseDB = std::unique_ptr<RowPaddedArray>(new RowPaddedArray("clauses", clausesBitSize, clausesPrefetch, clauses));
+                clauseDB = std::unique_ptr<RowPaddedArray>(new RowPaddedArray("clauses", 
+                  clausesBitSize, clausesPrefetch, clauses));
               } else if (clausesTransform == Transform::COL_MAJOR) {
                 // TODO
               } else if (clausesTransform == Transform::OFFSET) {
@@ -101,7 +102,8 @@ void tuneKernel(std::vector<std::vector<int32_t>>& clauses,
                 // TODO
               }
               
-              std::unique_ptr<PackedArray> assignmentsArray(new PackedArray("assignments", assignmentsBitSize, assignmentsPrefetch, assignments));
+              std::unique_ptr<PackedArray> assignmentsArray(new PackedArray("assignments", 
+                assignmentsBitSize, assignmentsPrefetch, assignments, workGroupSize));
 
               kernelHeader += clauseDB->generateOpenCLCode();
               kernelHeader += assignmentsArray->generateOpenCLCode();
@@ -111,7 +113,7 @@ void tuneKernel(std::vector<std::vector<int32_t>>& clauses,
 
               std::string kernel = appendKernelHeader(KERNEL, kernelHeader);
               cltune::Tuner tuner(size_t{PLATFORM_ID}, size_t{DEVICE_ID});
-              tuner.AddKernelFromString(kernel, KERNEL_NAME, {M}, {groupSize});
+              tuner.AddKernelFromString(kernel, KERNEL_NAME, {M}, {workGroupSize});
               tuner.SetReference({REF_KERNEL}, REF_KERNEL_NAME, {M}, {1});
               const auto startTime = std::chrono::steady_clock::now();
               tuner.AddArgumentScalar((int)M);
@@ -128,7 +130,7 @@ void tuneKernel(std::vector<std::vector<int32_t>>& clauses,
 
               // Store result
               TunerResult tunerResult;
-              tunerResult.workGroupSize = groupSize;
+              tunerResult.workGroupSize = workGroupSize;
               tunerResult.assignmentsBitSize = assignmentsBitSize;
               tunerResult.assignmentsPrefetch = assignmentsPrefetch;
               tunerResult.clausesBitSize = clausesBitSize;
@@ -152,13 +154,13 @@ int main(int argc, char *argv[]) {
   std::vector<int32_t> assignments = readMatrixFromFile(ASSIGNMENT_DATA)[0];
 
   ArrayConfig2D clausesConfig;
-  clausesConfig.bitSizes = {32};
+  clausesConfig.bitSizes = {16, 32};
   clausesConfig.prefetches = {false};
   clausesConfig.transforms = {Transform::ROW_MAJOR};
 
   ArrayConfig1D assignmentsConfig;
-  assignmentsConfig.bitSizes = {2, 32};
-  assignmentsConfig.prefetches = {false};
+  assignmentsConfig.bitSizes = {32};
+  assignmentsConfig.prefetches = {false, true};
 
   tuneKernel(clauses,
     clausesConfig,

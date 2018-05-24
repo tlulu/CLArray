@@ -8,7 +8,8 @@
 
 class PackedArray : public CLArray {
 	public:
-	  PackedArray(std::string name, int bitSize, bool prefetch, std::vector<int32_t> a);
+	  PackedArray(std::string name, int bitSize, bool prefetch, 
+	  	std::vector<int32_t> a, int workgroupSize = 1);
 	  virtual std::string generateOpenCLCode();
 	  virtual std::vector<int32_t> getArray(); // Returns the packed array.
 
@@ -19,14 +20,21 @@ class PackedArray : public CLArray {
 	 	std::vector<int32_t> pack(const std::vector<int32_t>& a);
 	 	int getRemainingWordSize(const int index);
 	 	int getPhysicalIndex(const int index);
+	 	std::string generateInitCode();
 	 	std::string generateAccessorCode();
-	 	std::string generateBitPackingCode();
+	 	std::string generatePackingAccessorCode();
+	 	std::string generatePrefetchingCode();
 
+	 	// Packing
 	 	int bitSize_;
-	 	bool prefetch_;
 	 	int numElements_;
 	 	int numCellsPerWord_;
 	 	int cellMask_;
+
+	 	// Prefetching
+	 	bool prefetch_;
+	 	int workgroupSize_;
+
 	  std::vector<int32_t> array_;
 };
 

@@ -4,7 +4,8 @@
 
 #include <sstream>
 
-RowPaddedArray::RowPaddedArray(std::string name, int bitSize, bool prefetch, std::vector<std::vector<int32_t>> m)
+RowPaddedArray::RowPaddedArray(std::string name, int bitSize, bool prefetch, 
+  std::vector<std::vector<int32_t>> m, int workgroupSizeX, int workgroupSizeY)
 	: CLArray(name), height_(m.size()) {
       addPadding(&m);
 

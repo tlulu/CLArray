@@ -5,13 +5,15 @@
 
 #include <sstream>
 
-PackedArray::PackedArray(std::string name, int bitSize, bool prefetch, std::vector<int32_t> a)
+PackedArray::PackedArray(std::string name, int bitSize, bool prefetch, 
+	std::vector<int32_t> a, int workgroupSize)
   : CLArray(name), 
   	bitSize_(bitSize),
-  	prefetch_(prefetch),
   	numElements_(a.size()),
   	numCellsPerWord_(MAX_BITSIZE / bitSize),
-  	cellMask_(getMaxValue(bitSize)) {
+  	cellMask_(getMaxValue(bitSize)),
+  	prefetch_(prefetch),
+  	workgroupSize_(workgroupSize) {
   		if (bitSize > MAX_BITSIZE) {
   			throw std::runtime_error("Cannot select a bit size greater than 32");
   		}
@@ -25,33 +27,28 @@ PackedArray::PackedArray(std::string name, int bitSize, bool prefetch, std::vect
 std::string PackedArray::generateOpenCLCode() {
 	std::stringstream ss;
 
-	if (prefetch_) {
-		// TODO
-	}
+	ss << generateInitCode();
 
 	if (bitSize_ == MAX_BITSIZE) {
 		ss << generateAccessorCode();
 	} else {
-		ss << generateBitPackingCode();
+		ss << generatePackingAccessorCode();
+	}
+
+	if (prefetch_) {
+		ss << generatePrefetchingCode();
+	} else {
+		// Used for testing purposes, not in the actual API.
+		ss << "#define INIT_LOCAL_name(global, local) __global const uint* (local) = (global);" << std::endl;
 	}
 
 	std::string output = ss.str();
   output = replaceString(output, "name", getName());
+  output = replaceString(output, "SCOPE", prefetch_ ? "__local" : "__global");
   return output;
 }
 
-std::string PackedArray::generateAccessorCode() {
-	std::stringstream ss;
-
-	ss << "int name_get(__global const int* arr, const int index) {" << std::endl;
-	ss << "  return arr[index];" << std::endl;
-	ss << "}" << std::endl;
-	ss << std::endl;
-
-	return ss.str();
-}
-
-std::string PackedArray::generateBitPackingCode() {
+std::string PackedArray::generateInitCode() {
 	std::stringstream ss;
 
 	// Bit-packing constants
@@ -60,15 +57,36 @@ std::string PackedArray::generateBitPackingCode() {
 	ss << "#define name_cell_mask " << cellMask_ << std::endl;
 	ss << std::endl;
 
-	// Helper
+	// Bit-packing helpers
 	ss << "int name_get_remaining_word_size(const int index) {" << std::endl;
 	ss << "  return 32 - name_bit_size * ((index % name_num_cells_per_word) + 1);" << std::endl;
 	ss << "}" << std::endl;
 	ss << std::endl;
 
-	// Accessor
-	ss << "int name_get(__global const int* arr, const int index) {" << std::endl;
-	ss << "  int physical_index = index / name_num_cells_per_word;" << std::endl;
+	ss << "int name_get_physical_index(const int logical_index) {" << std::endl;
+	ss << "  return logical_index / name_num_cells_per_word;" << std::endl;
+	ss << "}" << std::endl;
+	ss << std::endl;
+
+	return ss.str();
+}
+
+std::string PackedArray::generateAccessorCode() {
+	std::stringstream ss;
+
+	ss << "int name_get(SCOPE const int* arr, const int index) {" << std::endl;
+	ss << "  return arr[index];" << std::endl;
+	ss << "}" << std::endl;
+	ss << std::endl;
+
+	return ss.str();
+}
+
+std::string PackedArray::generatePackingAccessorCode() {
+	std::stringstream ss;
+
+	ss << "int name_get(SCOPE const int* arr, const int index) {" << std::endl;
+	ss << "  int physical_index = name_get_physical_index(index);" << std::endl;
 	ss << "  int word = arr[physical_index];" << std::endl;
 	ss << "  int shift = name_get_remaining_word_size(index);" << std::endl;
 	ss << "  return (word >> shift) & name_cell_mask;" << std::endl;
@@ -76,6 +94,50 @@ std::string PackedArray::generateBitPackingCode() {
 	ss << std::endl;
 
 	return ss.str();
+}
+
+std::string PackedArray::generatePrefetchingCode() {
+	std::stringstream ss;
+
+	int loopBoundFloor = (int) floor((float) array_.size() / workgroupSize_);
+  int loopBoundCeil = (int) ceil((float) array_.size() / workgroupSize_);
+
+  // Prefetching function
+  ss << "void name_prefetch(__global const int* const ga, __local int* la) {" << std::endl;
+  ss << "  const int local_size = get_local_size(0);" << std::endl;
+  ss << "  const int thread_id = get_local_id(0);" << std::endl;
+
+  ss << "  for (int loop = 0; loop < LOOP_BOUND_FLOOR; loop++) {" << std::endl;
+  ss << "    const int index = loop * local_size + thread_id;" << std::endl;
+  ss << "    la[index] = ga[index];" << std::endl;
+  ss << "  }" << std::endl;
+
+  // Second loop to check that we are in bounds.
+  // There will be at most one iteration of this loop.
+  if (loopBoundFloor < loopBoundCeil) {
+	  ss << "  for (int loop = LOOP_BOUND_FLOOR; loop < LOOP_BOUND_CEIL; loop++) {" << std::endl;
+	  ss << "    const int index = loop * local_size + thread_id;" << std::endl;
+	  ss << "    if (index < ARR_LENGTH) {" << std::endl;
+	  ss << "      la[index] = ga[index];" << std::endl;
+	  ss << "    }" << std::endl;
+	  ss << "  }" << std::endl;
+  }
+
+  ss << "  barrier(CLK_LOCAL_MEM_FENCE);" << std::endl;
+  ss << "}" << std::endl;
+  ss << std::endl;
+
+  // Macro definition
+	ss << "#define INIT_LOCAL_name(global, local) ";
+	ss << "__local int (local)[ARR_LENGTH]; ";
+  ss << "name_prefetch((global), (local));" << std::endl;
+  ss << std::endl;
+
+	std::string output = ss.str();
+	output = replaceString(output, "ARR_LENGTH", std::to_string(array_.size()));
+  output = replaceString(output, "LOOP_BOUND_FLOOR", std::to_string(loopBoundFloor));
+  output = replaceString(output, "LOOP_BOUND_CEIL", std::to_string(loopBoundCeil));
+  return output;
 }
 
 std::vector<int32_t> PackedArray::getArray() {
