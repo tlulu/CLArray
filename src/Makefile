@@ -13,7 +13,8 @@ LIB_OBJECTS = \
 TRANSFORM_OBJECTS = \
 	transforms/CLArray.o \
 	transforms/PackedArray.o \
-	transforms/RowPaddedArray.o
+	transforms/RowPaddedArray.o \
+	transforms/ColPaddedArray.o
 
 ALGORITHM_OBJECTS = \
 	algorithms/ClauseInspection.o
@@ -21,7 +22,8 @@ ALGORITHM_OBJECTS = \
 TEST_OBJECTS = \
 	tests/RunTests.o \
 	tests/PackedArrayTest.o \
-	tests/RowPaddedArrayTest.o
+	tests/RowPaddedArrayTest.o \
+	tests/ColPaddedArrayTest.o
 
 CLAUSE_EXEC = $(OBJ_DIR)/clause
 TEST_EXEC = $(OBJ_DIR)/unitTests

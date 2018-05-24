@@ -1,5 +1,6 @@
 #include "../../includes/CLArray.h"
 #include "../../includes/PackedArray.h"
+#include "../../includes/ColPaddedArray.h"
 #include "../../includes/RowPaddedArray.h"
 #include "../../includes/MathUtils.h"
 #include "../../includes/IOUtils.h"
@@ -95,7 +96,8 @@ void tuneKernel(std::vector<std::vector<int32_t>>& clauses,
                 clauseDB = std::unique_ptr<RowPaddedArray>(new RowPaddedArray("clauses", 
                   clausesBitSize, clausesPrefetch, clauses));
               } else if (clausesTransform == Transform::COL_MAJOR) {
-                // TODO
+                clauseDB = std::unique_ptr<ColPaddedArray>(new ColPaddedArray("clauses", 
+                  clausesBitSize, clausesPrefetch, clauses));
               } else if (clausesTransform == Transform::OFFSET) {
                 // TODO
               } else if (clausesTransform == Transform::MULTI_PAGE) {
@@ -156,7 +158,7 @@ int main(int argc, char *argv[]) {
   ArrayConfig2D clausesConfig;
   clausesConfig.bitSizes = {16, 32};
   clausesConfig.prefetches = {false};
-  clausesConfig.transforms = {Transform::ROW_MAJOR};
+  clausesConfig.transforms = {Transform::ROW_MAJOR, Transform::COL_MAJOR};
 
   ArrayConfig1D assignmentsConfig;
   assignmentsConfig.bitSizes = {32};

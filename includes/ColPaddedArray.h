@@ -1,5 +1,5 @@
-#ifndef __ROW_PADDING_ARRAY_H__
-#define __ROW_PADDING_ARRAY_H__
+#ifndef __COL_PADDING_ARRAY_H__
+#define __COL_PADDING_ARRAY_H__
 
 #include "Array2D.h"
 #include "CLArray.h"
@@ -8,9 +8,9 @@
 #include <string>
 #include <vector>
 
-class RowPaddedArray : public CLArray, Array2D {
+class ColPaddedArray : public CLArray, Array2D {
 	public:
-	  RowPaddedArray(std::string name, int bitSize, bool prefetch, std::vector<std::vector<int32_t>> m, 
+	  ColPaddedArray(std::string name, int bitSize, bool prefetch, std::vector<std::vector<int32_t>> m, 
 	  	int workgroupSizeX = 1, int workgroupSizeY = 1);
 	  virtual std::string generateOpenCLCode();
 	  virtual std::vector<int32_t> getArray();
