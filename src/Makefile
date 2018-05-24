@@ -14,7 +14,8 @@ TRANSFORM_OBJECTS = \
 	transforms/CLArray.o \
 	transforms/PackedArray.o \
 	transforms/RowPaddedArray.o \
-	transforms/ColPaddedArray.o
+	transforms/ColPaddedArray.o \
+	transforms/OffsetArray.o
 
 ALGORITHM_OBJECTS = \
 	algorithms/ClauseInspection.o
@@ -23,7 +24,8 @@ TEST_OBJECTS = \
 	tests/RunTests.o \
 	tests/PackedArrayTest.o \
 	tests/RowPaddedArrayTest.o \
-	tests/ColPaddedArrayTest.o
+	tests/ColPaddedArrayTest.o \
+	tests/OffsetArrayTest.o
 
 CLAUSE_EXEC = $(OBJ_DIR)/clause
 TEST_EXEC = $(OBJ_DIR)/unitTests

@@ -8,21 +8,7 @@
 TEST(ColPaddedArrayTest, getArray) {
 	std::vector<std::vector<int32_t>> m = {{1, 2, 3, 1, 3}, {1, 2}, {1, 2, 3}};
 	std::unique_ptr<ColPaddedArray> colPaddedArray(new ColPaddedArray("A", 32, false, m));
-	std::vector<int32_t> expected;
-
-	for (int i = 0; i < m.size(); i++) {
-    for (int j = 0; j < 5; j++) {
-      if (j >= m.at(i).size()) {
-        m.at(i).push_back(0);
-      }
-    }
-  }
-
-  for (int j = 0; j < 5; j++) {
-  	for (int i = 0; i < m.size(); i++) {
-  		expected.push_back(m.at(i).at(j));
-  	}
-  }
+	std::vector<int32_t> expected = {1, 1, 1, 2, 2, 2, 3, 0, 3, 1, 0, 0, 3, 0, 0};
 
 	EXPECT_EQ(colPaddedArray->getArray(), expected);
 	EXPECT_EQ(colPaddedArray->elementAt(0, 2), 3);

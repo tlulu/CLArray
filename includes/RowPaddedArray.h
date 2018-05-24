@@ -1,5 +1,5 @@
-#ifndef __ROW_PADDING_ARRAY_H__
-#define __ROW_PADDING_ARRAY_H__
+#ifndef __ROW_PADDED_ARRAY_H__
+#define __ROW_PADDED_ARRAY_H__
 
 #include "Array2D.h"
 #include "CLArray.h"

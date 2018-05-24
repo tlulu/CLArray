@@ -2,6 +2,7 @@
 #include "../../includes/PackedArray.h"
 #include "../../includes/ColPaddedArray.h"
 #include "../../includes/RowPaddedArray.h"
+#include "../../includes/OffsetArray.h"
 #include "../../includes/MathUtils.h"
 #include "../../includes/IOUtils.h"
 #include "../../includes/globals.h"
@@ -12,11 +13,6 @@
 #include <string>
 #include <chrono>
 #include <iomanip>
-
-const std::string KERNEL = "../kernels/clause_inspection.cl";
-const std::string KERNEL_NAME = "clause_inspection";
-const std::string REF_KERNEL = "../kernels/clause_inspection_ref.cl";
-const std::string REF_KERNEL_NAME = "clause_inspection_ref";
 
 const std::string DATA = "../data/small_clause.test";
 const std::string ASSIGNMENT_DATA = "../data/assign.test";
@@ -85,13 +81,17 @@ void tuneKernel(std::vector<std::vector<int32_t>>& clauses,
         for (auto clausesBitSize : clausesConfig.bitSizes) {
           for (auto clausesPrefetch : clausesConfig.prefetches) {
   			    for (auto clausesTransform : clausesConfig.transforms) {
-              std::cout << "TUNING PARAMETERS" << std::endl;
-              std::cout << "Assignments: bitsize: " << assignmentsBitSize << " Prefetch: " << assignmentsPrefetch << std::endl;
-              std::cout << "Clauses: bitsize: " << clausesBitSize << " Prefetch: " << clausesPrefetch << " Transform: " << clausesTransform << std::endl;
-      				std::string kernelHeader = "";
-              std::vector<int32_t> result(M);
+              const std::string KERNEL_NAME = "clause_inspection";
+              const std::string REF_KERNEL_NAME = "clause_inspection_ref";
+              std::string KERNEL = "../kernels/clause_inspection.cl";
+              std::string REF_KERNEL = "../kernels/clause_inspection_ref.cl";
+
+              // Create arrays
+              std::unique_ptr<PackedArray> assignmentsArray(new PackedArray("assignments", 
+                assignmentsBitSize, assignmentsPrefetch, assignments, workGroupSize));
+
               std::unique_ptr<CLArray> clauseDB;
-              
+              std::vector<int32_t> offsets;
               if (clausesTransform == Transform::ROW_MAJOR) {
                 clauseDB = std::unique_ptr<RowPaddedArray>(new RowPaddedArray("clauses", 
                   clausesBitSize, clausesPrefetch, clauses));
@@ -99,21 +99,25 @@ void tuneKernel(std::vector<std::vector<int32_t>>& clauses,
                 clauseDB = std::unique_ptr<ColPaddedArray>(new ColPaddedArray("clauses", 
                   clausesBitSize, clausesPrefetch, clauses));
               } else if (clausesTransform == Transform::OFFSET) {
-                // TODO
+                clauseDB = std::unique_ptr<OffsetArray>(new OffsetArray("clauses", 
+                  clausesBitSize, clausesPrefetch, clauses));
+                offsets = static_cast<OffsetArray*>(clauseDB.get())->getOffsets();
+                KERNEL = "../kernels/clause_inspection_offset.cl";
+                REF_KERNEL = "../kernels/clause_inspection_offset_ref.cl";
               } else if (clausesTransform == Transform::MULTI_PAGE) {
                 // TODO
               }
-              
-              std::unique_ptr<PackedArray> assignmentsArray(new PackedArray("assignments", 
-                assignmentsBitSize, assignmentsPrefetch, assignments, workGroupSize));
 
+              // Build kernel header
+              std::string kernelHeader = "";
               kernelHeader += clauseDB->generateOpenCLCode();
               kernelHeader += assignmentsArray->generateOpenCLCode();
-
               std::cout << "GENERATED OPENCL HEADER" << std::endl;
               std::cout << kernelHeader;
-
               std::string kernel = appendKernelHeader(KERNEL, kernelHeader);
+
+              // CLTune tuner parameters
+              std::vector<int32_t> result(M);
               cltune::Tuner tuner(size_t{PLATFORM_ID}, size_t{DEVICE_ID});
               tuner.AddKernelFromString(kernel, KERNEL_NAME, {M}, {workGroupSize});
               tuner.SetReference({REF_KERNEL}, REF_KERNEL_NAME, {M}, {1});
@@ -122,6 +126,9 @@ void tuneKernel(std::vector<std::vector<int32_t>>& clauses,
               tuner.AddArgumentInput(clauseDB->getArray());
               tuner.AddArgumentInput(assignmentsArray->getArray());
               tuner.AddArgumentInput(clauseLengths);
+              if (clausesTransform == Transform::OFFSET) {
+                tuner.AddArgumentInput(offsets);
+              }
               tuner.AddArgumentInput(target);
               tuner.AddArgumentOutput(result);
               const auto cpuTime = std::chrono::steady_clock::now() - startTime;
@@ -158,7 +165,7 @@ int main(int argc, char *argv[]) {
   ArrayConfig2D clausesConfig;
   clausesConfig.bitSizes = {16, 32};
   clausesConfig.prefetches = {false};
-  clausesConfig.transforms = {Transform::ROW_MAJOR, Transform::COL_MAJOR};
+  clausesConfig.transforms = {Transform::ROW_MAJOR, Transform::COL_MAJOR, Transform::OFFSET};
 
   ArrayConfig1D assignmentsConfig;
   assignmentsConfig.bitSizes = {32};

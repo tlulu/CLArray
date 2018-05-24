@@ -8,17 +8,7 @@
 TEST(RowPaddedArrayTest, getArray) {
 	std::vector<std::vector<int32_t>> m = {{1, 2, 3, 1, 3}, {1, 2}, {1, 2, 3}};
 	std::unique_ptr<RowPaddedArray> rowPaddedArray(new RowPaddedArray("A", 32, false, m));
-	std::vector<int32_t> expected;
-
-	for (int i = 0; i < m.size(); i++) {
-		for (int j = 0; j < 5; j++) {
-			if (j >= m.at(i).size()) {
-				expected.push_back(0);
-			} else {
-				expected.push_back(m.at(i).at(j));
-			}
-		}
-	}
+	std::vector<int32_t> expected = {1, 2, 3, 1, 3, 1, 2, 0, 0, 0, 1, 2, 3, 0, 0};
 
 	EXPECT_EQ(rowPaddedArray->getArray(), expected);
 	EXPECT_EQ(rowPaddedArray->elementAt(0, 2), 3);
