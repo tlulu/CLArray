@@ -66,3 +66,49 @@ std::vector<int32_t> clauseInspection(std::vector<std::vector<int32_t>>& matrix,
   }
   return result;
 }
+
+std::map<int, std::vector<int32_t>> clauseInspectionMulti(std::map<int, std::vector<int32_t>>& matrix, std::vector<int32_t>& assignments) {
+  std::map<int, std::vector<int32_t>> target;
+
+  for (auto const& entry : matrix) {
+    int M = entry.second.size() / entry.first;
+    std::vector<int32_t> currResult(M);
+    for (int i = 0; i < M; i++) {
+      int result = UNRES;
+      int count = 0;
+      for (int k = 0; k < entry.first; k++) {
+        int lit = entry.second.at(i * entry.first + k);
+        int val = assignments.at(lit);
+        if (val == UNDEF) {
+          count++;
+        } else if (val == TRUE) {
+          currResult[i] = SAT;
+          break;
+        }
+      }
+      if (currResult[i] == SAT) continue;
+      // Return clause state based on count
+      if (count == entry.first) {
+        result = WASTE;
+      } else if (count == 0) {
+        result = CONFLICT;
+      } else if (count == 1) {
+        result = UNIT;
+      } else {
+        result = UNRES;
+      }
+      currResult[i] = result;
+    }
+    target.insert({entry.first, currResult});
+  }
+  return target;
+}
+
+std::map<int, std::vector<int32_t>> transformToMultiPage(std::vector<std::vector<int32_t>>& in) {
+  std::map<int, std::vector<int32_t>> out;
+  for (auto it = in.begin(); it != in.end(); ++it) {
+    unsigned int size = it->size();
+    out[size].insert(out[size].end(), it->begin(), it->end());
+  }
+  return out;
+}
