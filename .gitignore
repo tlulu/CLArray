@@ -1,4 +1,4 @@
 *.DS_Store
 src/**/*.o
 src/bin/
-data/large*
+data/*/large*

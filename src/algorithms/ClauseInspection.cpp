@@ -16,8 +16,8 @@
 
 const std::string KERNEL_NAME = "clause_inspection";
 const std::string REF_KERNEL_NAME = "clause_inspection_ref";
-const std::string DATA = "../data/small_clause.test";
-const std::string ASSIGNMENT_DATA = "../data/assign.test";
+const std::string DATA = "../data/clause/small_clause.test";
+const std::string ASSIGNMENT_DATA = "../data/clause/assign.test";
 
 const std::string OUTPUT_JSON_FILE = "bin/tuner_result.json";
 
@@ -65,8 +65,8 @@ void printResults() {
 
 void executeRowCol(const size_t M, const int width, std::unique_ptr<CLArray>& clauseDB, std::unique_ptr<PackedArray>& assignmentsArray, 
   const std::vector<int32_t>& target, TunerResult& tunerResult, size_t workGroupSize) {
-  const std::string KERNEL = "../kernels/clause_inspection.cl";
-  const std::string REF_KERNEL = "../kernels/clause_inspection_ref.cl";
+  const std::string KERNEL = "../kernels/clause/clause_inspection.cl";
+  const std::string REF_KERNEL = "../kernels/clause/clause_inspection_ref.cl";
 
   // Build kernel header
   std::string kernelHeader = "";
@@ -102,8 +102,8 @@ void executeRowCol(const size_t M, const int width, std::unique_ptr<CLArray>& cl
 
 void executeOffset(const size_t M, std::unique_ptr<OffsetArray>& clauseDB, std::unique_ptr<PackedArray>& assignmentsArray, 
   const std::vector<int32_t>& target, TunerResult& tunerResult, size_t workGroupSize) {
-  const std::string KERNEL = "../kernels/clause_inspection_offset.cl";
-  const std::string REF_KERNEL = "../kernels/clause_inspection_offset_ref.cl";
+  const std::string KERNEL = "../kernels/clause/clause_inspection_offset.cl";
+  const std::string REF_KERNEL = "../kernels/clause/clause_inspection_offset_ref.cl";
 
   // Build kernel header
   std::string kernelHeader = "";
@@ -139,8 +139,8 @@ void executeOffset(const size_t M, std::unique_ptr<OffsetArray>& clauseDB, std::
 
 void executeMultipage(std::vector<std::vector<int32_t>>& clauses, std::vector<int32_t>& assignments,
   std::unique_ptr<PackedArray>& assignmentsArray, TunerResult& tunerResult, int clausesBitSize, size_t workGroupSize) {
-  const std::string KERNEL = "../kernels/clause_inspection_multi.cl";
-  const std::string REF_KERNEL = "../kernels/clause_inspection_multi_ref.cl";
+  const std::string KERNEL = "../kernels/clause/clause_inspection_multi.cl";
+  const std::string REF_KERNEL = "../kernels/clause/clause_inspection_multi_ref.cl";
   std::map<int, std::vector<int32_t>> arrMap = transformToMultiPage(clauses);
   const std::map<int, std::vector<int32_t>> target = clauseInspectionMulti(arrMap, assignments);
   double totalExecutionTime = 0.0;
