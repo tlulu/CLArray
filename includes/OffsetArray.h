@@ -19,8 +19,9 @@ class OffsetArray : public CLArray, Array2D {
 
 	private:
 		virtual std::vector<int32_t> transform(const std::vector<std::vector<int32_t>>& m);
+		std::vector<int32_t> buildOffsets(const std::vector<std::vector<int32_t>>& m);
 
-		std::vector<int32_t> offsets_;
+		std::unique_ptr<PackedArray> offsets_;
 		std::unique_ptr<PackedArray> packedArray_;
 };
 

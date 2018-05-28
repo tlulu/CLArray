@@ -15,6 +15,7 @@ class RowPaddedArray : public CLArray, Array2D {
 	  virtual std::string generateOpenCLCode();
 	  virtual std::vector<int32_t> getArray();
 	  virtual int32_t elementAt(const int i, const int j);
+	  int getWidth();
 
 	private:
 		virtual std::vector<int32_t> transform(const std::vector<std::vector<int32_t>>& m);

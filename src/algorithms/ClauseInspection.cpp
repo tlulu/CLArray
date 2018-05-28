@@ -63,17 +63,91 @@ void printResults() {
   }
 }
 
+void executeRowCol(const size_t M, const int width, std::unique_ptr<CLArray>& clauseDB, std::unique_ptr<PackedArray>& assignmentsArray, 
+  const std::vector<int32_t>& target, TunerResult& tunerResult, size_t workGroupSize) {
+  const std::string KERNEL = "../kernels/clause_inspection.cl";
+  const std::string REF_KERNEL = "../kernels/clause_inspection_ref.cl";
+
+  // Build kernel header
+  std::string kernelHeader = "";
+  kernelHeader += clauseDB->generateOpenCLCode();
+  kernelHeader += assignmentsArray->generateOpenCLCode();
+  std::cout << "GENERATED OPENCL HEADER" << std::endl;
+  std::cout << kernelHeader;
+  std::string kernel = appendKernelHeader(KERNEL, kernelHeader);
+
+  // CLTune tuner parameters
+  std::vector<int32_t> result(M);
+  cltune::Tuner tuner(size_t{PLATFORM_ID}, size_t{DEVICE_ID});
+  tuner.AddKernelFromString(kernel, KERNEL_NAME, {M}, {workGroupSize});
+  tuner.SetReference({REF_KERNEL}, REF_KERNEL_NAME, {M}, {1});
+  const auto startTime = std::chrono::steady_clock::now();
+  tuner.AddArgumentScalar((int)M);
+  tuner.AddArgumentScalar(width);
+  tuner.AddArgumentInput(clauseDB->getArray());
+  tuner.AddArgumentInput(assignmentsArray->getArray());
+  tuner.AddArgumentInput(target);
+  tuner.AddArgumentOutput(result);
+  const auto cpuTime = std::chrono::steady_clock::now() - startTime;
+  const auto dataTransferTime = std::chrono::duration<float,std::milli>(cpuTime).count();
+  tuner.SetNumRuns(NUMRUNS);
+  tuner.Tune();
+  tuner.PrintJSON(OUTPUT_JSON_FILE, {});
+
+  // Store result
+  tunerResult.dataTransferTime = dataTransferTime;
+  tunerResult.executionTime = getExecutionResult(OUTPUT_JSON_FILE);
+  tunerResults.push_back(tunerResult);
+}
+
+void executeOffset(const size_t M, std::unique_ptr<OffsetArray>& clauseDB, std::unique_ptr<PackedArray>& assignmentsArray, 
+  const std::vector<int32_t>& target, TunerResult& tunerResult, size_t workGroupSize) {
+  const std::string KERNEL = "../kernels/clause_inspection_offset.cl";
+  const std::string REF_KERNEL = "../kernels/clause_inspection_offset_ref.cl";
+
+  // Build kernel header
+  std::string kernelHeader = "";
+  kernelHeader += clauseDB->generateOpenCLCode();
+  kernelHeader += assignmentsArray->generateOpenCLCode();
+  std::cout << "GENERATED OPENCL HEADER" << std::endl;
+  std::cout << kernelHeader;
+  std::string kernel = appendKernelHeader(KERNEL, kernelHeader);
+
+  // CLTune tuner parameters
+  std::vector<int32_t> result(M);
+  cltune::Tuner tuner(size_t{PLATFORM_ID}, size_t{DEVICE_ID});
+  tuner.AddKernelFromString(kernel, KERNEL_NAME, {M}, {workGroupSize});
+  tuner.SetReference({REF_KERNEL}, REF_KERNEL_NAME, {M}, {1});
+  const auto startTime = std::chrono::steady_clock::now();
+  tuner.AddArgumentScalar((int)M);
+  tuner.AddArgumentInput(clauseDB->getArray());
+  tuner.AddArgumentInput(assignmentsArray->getArray());
+  tuner.AddArgumentInput(clauseDB->getOffsets());
+  tuner.AddArgumentInput(target);
+  tuner.AddArgumentOutput(result);
+  const auto cpuTime = std::chrono::steady_clock::now() - startTime;
+  const auto dataTransferTime = std::chrono::duration<float,std::milli>(cpuTime).count();
+  tuner.SetNumRuns(NUMRUNS);
+  tuner.Tune();
+  tuner.PrintJSON(OUTPUT_JSON_FILE, {});
+
+  // Store result
+  tunerResult.dataTransferTime = dataTransferTime;
+  tunerResult.executionTime = getExecutionResult(OUTPUT_JSON_FILE);
+  tunerResults.push_back(tunerResult);
+}
+
 void executeMultipage(std::vector<std::vector<int32_t>>& clauses, std::vector<int32_t>& assignments,
-  std::unique_ptr<PackedArray>& assignmentsArray, TunerResult& tunerResult, size_t workGroupSize) {
-  std::string KERNEL = "../kernels/clause_inspection_multi.cl";
-  std::string REF_KERNEL = "../kernels/clause_inspection_multi_ref.cl";
+  std::unique_ptr<PackedArray>& assignmentsArray, TunerResult& tunerResult, int clausesBitSize, size_t workGroupSize) {
+  const std::string KERNEL = "../kernels/clause_inspection_multi.cl";
+  const std::string REF_KERNEL = "../kernels/clause_inspection_multi_ref.cl";
   std::map<int, std::vector<int32_t>> arrMap = transformToMultiPage(clauses);
-  std::map<int, std::vector<int32_t>> target = clauseInspectionMulti(arrMap, assignments);
+  const std::map<int, std::vector<int32_t>> target = clauseInspectionMulti(arrMap, assignments);
   double totalExecutionTime = 0.0;
   double totalDataTransferTime = 0.0;
   
   for (auto it = arrMap.begin(); it != arrMap.end(); ++it) {
-    std::unique_ptr<PackedArray> arr(new PackedArray("clauses", 32, false, it->second, workGroupSize));
+    std::unique_ptr<PackedArray> arr(new PackedArray("clauses", clausesBitSize, false, it->second, workGroupSize));
     assert(it->second.size() % it->first == 0); // This should always be a full matrix
     uint32_t M = it->second.size() / it->first;
 
@@ -84,6 +158,10 @@ void executeMultipage(std::vector<std::vector<int32_t>>& clauses, std::vector<in
     std::cout << "GENERATED OPENCL HEADER" << std::endl;
     std::cout << kernelHeader;
     std::string kernel = appendKernelHeader(KERNEL, kernelHeader);
+
+    // Sanity checking
+    assert(arr->getArray().size() != 0);
+    assert(assignmentsArray->getArray().size() != 0);
 
     // CLTune tuner parameters
     std::vector<int32_t> result(M);
@@ -118,13 +196,7 @@ void tuneKernel(std::vector<std::vector<int32_t>>& clauses,
   ArrayConfig1D& assignmentsConfig) {
   const std::vector<size_t> WORKGROUP_SIZES = {32};
   const size_t M = clauses.size();
-  std::vector<int32_t> clauseLengths(M);
-
-  for (int i = 0; i < M; i++) {
-    clauseLengths[i] = clauses.at(i).size();
-  }
-
-  std::vector<int32_t> target = clauseInspection(clauses, assignments);
+  const std::vector<int32_t> target = clauseInspection(clauses, assignments);
 
   for (auto workGroupSize : WORKGROUP_SIZES) {
   	for (auto assignmentsBitSize : assignmentsConfig.bitSizes) {
@@ -140,65 +212,24 @@ void tuneKernel(std::vector<std::vector<int32_t>>& clauses,
               tunerResult.clausesPrefetch = clausesPrefetch;
               tunerResult.clausesTransform = clausesTransform;
 
-              std::string KERNEL = "../kernels/clause_inspection.cl";
-              std::string REF_KERNEL = "../kernels/clause_inspection_ref.cl";
-
               // Create arrays
               std::unique_ptr<PackedArray> assignmentsArray(new PackedArray("assignments", 
                 assignmentsBitSize, assignmentsPrefetch, assignments, workGroupSize));
 
-              std::unique_ptr<CLArray> clauseDB;
-              std::vector<int32_t> offsets;
               if (clausesTransform == Transform::ROW_MAJOR) {
-                clauseDB = std::unique_ptr<RowPaddedArray>(new RowPaddedArray("clauses", 
-                  clausesBitSize, clausesPrefetch, clauses));
+                std::unique_ptr<CLArray> clauseDB = std::unique_ptr<RowPaddedArray>(new RowPaddedArray("clauses", clausesBitSize, clausesPrefetch, clauses));
+                const int width = static_cast<RowPaddedArray*>(clauseDB.get())->getWidth();
+                executeRowCol(M, width, clauseDB, assignmentsArray, target, tunerResult, workGroupSize);
               } else if (clausesTransform == Transform::COL_MAJOR) {
-                clauseDB = std::unique_ptr<ColPaddedArray>(new ColPaddedArray("clauses", 
-                  clausesBitSize, clausesPrefetch, clauses));
+                std::unique_ptr<CLArray> clauseDB = std::unique_ptr<ColPaddedArray>(new ColPaddedArray("clauses", clausesBitSize, clausesPrefetch, clauses));
+                const int width = static_cast<ColPaddedArray*>(clauseDB.get())->getWidth();
+                executeRowCol(M, width, clauseDB, assignmentsArray, target, tunerResult, workGroupSize);
               } else if (clausesTransform == Transform::OFFSET) {
-                clauseDB = std::unique_ptr<OffsetArray>(new OffsetArray("clauses", 
-                  clausesBitSize, clausesPrefetch, clauses));
-                offsets = static_cast<OffsetArray*>(clauseDB.get())->getOffsets();
-                KERNEL = "../kernels/clause_inspection_offset.cl";
-                REF_KERNEL = "../kernels/clause_inspection_offset_ref.cl";
+                std::unique_ptr<OffsetArray> clauseDB = std::unique_ptr<OffsetArray>(new OffsetArray("clauses", clausesBitSize, clausesPrefetch, clauses, workGroupSize));
+                executeOffset(M, clauseDB, assignmentsArray, target, tunerResult, workGroupSize);
               } else if (clausesTransform == Transform::MULTI_PAGE) {
-                executeMultipage(clauses, assignments, assignmentsArray, tunerResult, workGroupSize);
-                continue;
+                executeMultipage(clauses, assignments, assignmentsArray, tunerResult, clausesBitSize, workGroupSize);
               }
-
-              // Build kernel header
-              std::string kernelHeader = "";
-              kernelHeader += clauseDB->generateOpenCLCode();
-              kernelHeader += assignmentsArray->generateOpenCLCode();
-              std::cout << "GENERATED OPENCL HEADER" << std::endl;
-              std::cout << kernelHeader;
-              std::string kernel = appendKernelHeader(KERNEL, kernelHeader);
-
-              // CLTune tuner parameters
-              std::vector<int32_t> result(M);
-              cltune::Tuner tuner(size_t{PLATFORM_ID}, size_t{DEVICE_ID});
-              tuner.AddKernelFromString(kernel, KERNEL_NAME, {M}, {workGroupSize});
-              tuner.SetReference({REF_KERNEL}, REF_KERNEL_NAME, {M}, {1});
-              const auto startTime = std::chrono::steady_clock::now();
-              tuner.AddArgumentScalar((int)M);
-              tuner.AddArgumentInput(clauseDB->getArray());
-              tuner.AddArgumentInput(assignmentsArray->getArray());
-              tuner.AddArgumentInput(clauseLengths);
-              if (clausesTransform == Transform::OFFSET) {
-                tuner.AddArgumentInput(offsets);
-              }
-              tuner.AddArgumentInput(target);
-              tuner.AddArgumentOutput(result);
-              const auto cpuTime = std::chrono::steady_clock::now() - startTime;
-              const auto dataTransferTime = std::chrono::duration<float,std::milli>(cpuTime).count();
-              tuner.SetNumRuns(NUMRUNS);
-              tuner.Tune();
-              tuner.PrintJSON(OUTPUT_JSON_FILE, {});
-
-              // Store result
-              tunerResult.dataTransferTime = dataTransferTime;
-              tunerResult.executionTime = getExecutionResult(OUTPUT_JSON_FILE);
-              tunerResults.push_back(tunerResult);
             }
           }
   			}
@@ -222,8 +253,5 @@ int main(int argc, char *argv[]) {
   assignmentsConfig.bitSizes = {32};
   assignmentsConfig.prefetches = {false, true};
 
-  tuneKernel(clauses,
-    clausesConfig,
-    assignments,
-    assignmentsConfig);
+  tuneKernel(clauses, clausesConfig, assignments, assignmentsConfig);
 }

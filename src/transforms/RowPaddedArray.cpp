@@ -34,6 +34,10 @@ int32_t RowPaddedArray::elementAt(const int i, const int j) {
 	return packedArray_->elementAt(i * width_ + j);
 }
 
+int RowPaddedArray::getWidth() {
+  return width_;
+}
+
 std::vector<int32_t> RowPaddedArray::transform(const std::vector<std::vector<int32_t>>& m) {
 	std::vector<int32_t> a;
   for (size_t i = 0; i < height_; i++) {

@@ -1,7 +1,7 @@
 __kernel void clause_inspection(const int M,
+                      const int Length,
                       const __global int* Clauses,
                       const __global int* Assignments,
-											const __global int* Lengths,
                       const __global int* Target,
                       __global int* C) {
 
@@ -15,7 +15,7 @@ __kernel void clause_inspection(const int M,
     return;
   }
 
-  const int N = Lengths[i];
+  const int N = Length;
   int result = UNRES;
   int count = 0;
   for (int k = 0; k < N; k++) {

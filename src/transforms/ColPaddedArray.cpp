@@ -34,6 +34,10 @@ int32_t ColPaddedArray::elementAt(const int i, const int j) {
 	return packedArray_->elementAt(j * height_ + i);
 }
 
+int ColPaddedArray::getWidth() {
+  return width_;
+}
+
 std::vector<int32_t> ColPaddedArray::transform(const std::vector<std::vector<int32_t>>& m) {
 	std::vector<int32_t> a;
   for (size_t j = 0; j < width_; j++) {
