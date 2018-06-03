@@ -18,7 +18,8 @@ TRANSFORM_OBJECTS = \
 	transforms/OffsetArray.o
 
 ALGORITHM_OBJECTS = \
-	algorithms/ClauseInspection.o
+	algorithms/ClauseInspection.o \
+	algorithms/Hadamard.o
 
 TEST_OBJECTS = \
 	tests/RunTests.o \
@@ -29,9 +30,10 @@ TEST_OBJECTS = \
 	tests/MultipageTest.o
 
 CLAUSE_EXEC = $(OBJ_DIR)/clause
+HADAMARD_EXEC = $(OBJ_DIR)/hadamard
 TEST_EXEC = $(OBJ_DIR)/unitTests
 
-EXECS = ${CLAUSE_EXEC} ${TEST_EXEC}
+EXECS = ${CLAUSE_EXEC} ${HADAMARD_EXEC} ${TEST_EXEC}
 OBJECTS = \
 	${COMMON_OBJECTS} \
 	${LIB_OBJECTS} \
@@ -46,12 +48,15 @@ all: $(OBJ_DIR) ${EXECS}
 
 clean:
 	rm -f ${OBJECTS} ${EXECS} ${DEPENDS}
-	rm -r $(OBJ_DIR)
+	rm -rf $(OBJ_DIR)
 
 $(OBJ_DIR):
 	mkdir -p $(OBJ_DIR)
 
-${CLAUSE_EXEC}: ${COMMON_OBJECTS} ${TRANSFORM_OBJECTS} ${ALGORITHM_OBJECTS} ${LIB_OBJECTS}
+${CLAUSE_EXEC}: ${COMMON_OBJECTS} ${TRANSFORM_OBJECTS} algorithms/ClauseInspection.o ${LIB_OBJECTS}
+	${CXX} ${CXXFLAGS} $^ -o $@ -lcltune
+
+${HADAMARD_EXEC}: ${COMMON_OBJECTS} ${TRANSFORM_OBJECTS} algorithms/Hadamard.o ${LIB_OBJECTS}
 	${CXX} ${CXXFLAGS} $^ -o $@ -lcltune
 
 ${TEST_EXEC}: ${COMMON_OBJECTS} ${TRANSFORM_OBJECTS} ${TEST_OBJECTS} ${LIB_OBJECTS}

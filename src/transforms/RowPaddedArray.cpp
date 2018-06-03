@@ -30,6 +30,10 @@ std::vector<int32_t> RowPaddedArray::getArray() {
   return packedArray_->getArray();
 }
 
+int RowPaddedArray::numElements() {
+  return packedArray_->numElements();
+}
+
 int32_t RowPaddedArray::elementAt(const int i, const int j) {
 	return packedArray_->elementAt(i * width_ + j);
 }

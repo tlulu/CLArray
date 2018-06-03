@@ -15,6 +15,7 @@ class OffsetArray : public CLArray, Array2D {
 	  virtual std::string generateOpenCLCode();
 	  virtual std::vector<int32_t> getArray();
 	  virtual int32_t elementAt(const int i, const int j);
+	  virtual int numElements();
 	  std::vector<int32_t> getOffsets();
 
 	private:

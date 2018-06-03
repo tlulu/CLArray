@@ -144,6 +144,10 @@ std::vector<int32_t> PackedArray::getArray() {
 	return array_;
 }
 
+int PackedArray::numElements() {
+	return numElements_;
+}
+
 int32_t PackedArray::elementAt(const int index) {
 	int32_t word = array_.at(getPhysicalIndex(index));
 	int shift = getRemainingWordSize(index);

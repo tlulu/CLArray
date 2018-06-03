@@ -30,6 +30,10 @@ std::vector<int32_t> ColPaddedArray::getArray() {
   return packedArray_->getArray();
 }
 
+int ColPaddedArray::numElements() {
+  return packedArray_->numElements();
+}
+
 int32_t ColPaddedArray::elementAt(const int i, const int j) {
 	return packedArray_->elementAt(j * height_ + i);
 }

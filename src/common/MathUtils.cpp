@@ -34,7 +34,7 @@ void addPadding(std::vector<std::vector<int32_t>>* m) {
 std::vector<int32_t> clauseInspection(std::vector<std::vector<int32_t>>& matrix, std::vector<int32_t>& assignments) {
   std::vector<int32_t> result(matrix.size());
   for (int i = 0; i < matrix.size(); i++) {
-    int clause_result = UNRES;
+    int clauseResult = UNRES;
     int count = 0;
 
     for (int j = 0; j < matrix.at(i).size(); j++) {
@@ -48,23 +48,19 @@ std::vector<int32_t> clauseInspection(std::vector<std::vector<int32_t>>& matrix,
       }
     }
 
-    if (result[i] != SAT) {
-      // Return clause state based on count
-      if (count == matrix.at(i).size()) {
-        clause_result = WASTE;
-      }
-      else if (count == 0) {
-        clause_result = CONFLICT;
-      }
-      else if (count == 1) {
-        clause_result = UNIT;
-      }
-      else {
-        clause_result = UNRES;
-      }
-
-      result[i] = clause_result;
+    if (result[i] == SAT) continue;
+    
+    // Return clause state based on count
+    if (count == matrix.at(i).size()) {
+      clauseResult = WASTE;
+    } else if (count == 0) {
+      clauseResult = CONFLICT;
+    } else if (count == 1) {
+      clauseResult = UNIT;
+    } else {
+      clauseResult = UNRES;
     }
+    result[i] = clauseResult;
   }
   return result;
 }
@@ -72,38 +68,8 @@ std::vector<int32_t> clauseInspection(std::vector<std::vector<int32_t>>& matrix,
 std::map<int, std::vector<int32_t>> clauseInspectionMulti(
   std::map<int, std::vector<std::vector<int32_t>>>& matrixMap, std::vector<int32_t>& assignments) {
   std::map<int, std::vector<int32_t>> target;
-
-  for (auto const& entry : matrixMap) {
-    int M = entry.second.size();
-
-    std::vector<int32_t> currResult(M);
-    for (int i = 0; i < M; i++) {
-      int result = UNRES;
-      int count = 0;
-      for (int k = 0; k < entry.first; k++) {
-        int lit = entry.second.at(i).at(k);
-        int val = assignments.at(lit);
-        if (val == UNDEF) {
-          count++;
-        } else if (val == TRUE) {
-          currResult[i] = SAT;
-          break;
-        }
-      }
-      if (currResult[i] == SAT) continue;
-      // Return clause state based on count
-      if (count == entry.first) {
-        result = WASTE;
-      } else if (count == 0) {
-        result = CONFLICT;
-      } else if (count == 1) {
-        result = UNIT;
-      } else {
-        result = UNRES;
-      }
-      currResult[i] = result;
-    }
-    target.insert({entry.first, currResult});
+  for (auto entry : matrixMap) {
+    target.insert({entry.first, clauseInspection(entry.second, assignments)});
   }
   return target;
 }
@@ -143,3 +109,22 @@ std::map<int, std::unique_ptr<CLArray>> transformToMultiPage(std::map<int, std::
 
   return out;
 }
+
+std::vector<int32_t> hadamardTarget(std::vector<std::vector<int32_t>>& m1, 
+  std::vector<std::vector<int32_t>>& m2) {
+  std::vector<int32_t> target;
+  for (int i = 0; i < m1.size(); i++) {
+    for (int j = 0; j < m1.at(i).size(); j++) {
+      target.push_back(m1.at(i).at(j) * m2.at(i).at(j));
+    }
+  }
+  return target;
+}
+
+// std::map<int, std::vector<int32_t>> hadamardTargetMulti(std::map<int, std::vector<std::vector<int32_t>>>& matrixMap) {
+//   std::map<int, std::vector<int32_t>> target;
+//   for (auto entry : matrixMap) {
+//     target.insert({entry.first, hadamardTarget(entry.second, assignments)});
+//   }
+//   return target;
+// }

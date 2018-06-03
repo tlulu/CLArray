@@ -151,8 +151,8 @@ void executeMultipage(std::vector<std::vector<int32_t>>& clauses, std::vector<in
     const int width = it->first;
     std::unique_ptr<CLArray> arr = std::move(it->second);
 
-    assert(arr->getArray().size() % width == 0); // This should always be a full matrix
-    uint32_t M = arr->getArray().size() / width;
+    assert(arr->numElements() % width == 0); // This should always be a full matrix
+    uint32_t M = arr->numElements() / width;
 
     // Build kernel header
     std::string kernelHeader = "";
@@ -163,8 +163,8 @@ void executeMultipage(std::vector<std::vector<int32_t>>& clauses, std::vector<in
     std::string kernel = appendKernelHeader(KERNEL, kernelHeader);
 
     // Sanity checking
-    assert(arr->getArray().size() != 0);
-    assert(assignmentsArray->getArray().size() != 0);
+    assert(arr->numElements() != 0);
+    assert(assignmentsArray->numElements() != 0);
 
     // CLTune tuner parameters
     std::vector<int32_t> result(M);
