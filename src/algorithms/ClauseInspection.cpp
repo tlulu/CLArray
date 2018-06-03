@@ -139,17 +139,20 @@ void executeOffset(const size_t M, std::unique_ptr<OffsetArray>& clauseDB, std::
 
 void executeMultipage(std::vector<std::vector<int32_t>>& clauses, std::vector<int32_t>& assignments,
   std::unique_ptr<PackedArray>& assignmentsArray, TunerResult& tunerResult, int clausesBitSize, size_t workGroupSize) {
-  const std::string KERNEL = "../kernels/clause/clause_inspection_multi.cl";
-  const std::string REF_KERNEL = "../kernels/clause/clause_inspection_multi_ref.cl";
-  std::map<int, std::vector<int32_t>> arrMap = transformToMultiPage(clauses);
-  const std::map<int, std::vector<int32_t>> target = clauseInspectionMulti(arrMap, assignments);
+  const std::string KERNEL = "../kernels/clause/clause_inspection.cl";
+  const std::string REF_KERNEL = "../kernels/clause/clause_inspection_ref.cl";
+  std::map<int, std::vector<std::vector<int32_t>>> multiPages = getMultiPages(clauses);
+  std::map<int, std::unique_ptr<CLArray>> arrMap = transformToMultiPage(multiPages, "clauses", clausesBitSize, false, Transform::ROW_MAJOR, workGroupSize);
+  std::map<int, std::vector<int32_t>> target = clauseInspectionMulti(multiPages, assignments);
   double totalExecutionTime = 0.0;
   double totalDataTransferTime = 0.0;
   
   for (auto it = arrMap.begin(); it != arrMap.end(); ++it) {
-    std::unique_ptr<PackedArray> arr(new PackedArray("clauses", clausesBitSize, false, it->second, workGroupSize));
-    assert(it->second.size() % it->first == 0); // This should always be a full matrix
-    uint32_t M = it->second.size() / it->first;
+    const int width = it->first;
+    std::unique_ptr<CLArray> arr = std::move(it->second);
+
+    assert(arr->getArray().size() % width == 0); // This should always be a full matrix
+    uint32_t M = arr->getArray().size() / width;
 
     // Build kernel header
     std::string kernelHeader = "";
@@ -170,10 +173,10 @@ void executeMultipage(std::vector<std::vector<int32_t>>& clauses, std::vector<in
     tuner.SetReference({REF_KERNEL}, REF_KERNEL_NAME, {M}, {1});
     const auto startTime = std::chrono::steady_clock::now();
     tuner.AddArgumentScalar((int)M);
-    tuner.AddArgumentScalar((int)it->first);
+    tuner.AddArgumentScalar(width);
     tuner.AddArgumentInput(arr->getArray());
     tuner.AddArgumentInput(assignmentsArray->getArray());
-    tuner.AddArgumentInput(target.at((int)it->first));
+    tuner.AddArgumentInput(target.at(width));
     tuner.AddArgumentOutput(result);
     const auto cpuTime = std::chrono::steady_clock::now() - startTime;
     const auto dataTransferTime = std::chrono::duration<float,std::milli>(cpuTime).count();

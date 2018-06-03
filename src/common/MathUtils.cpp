@@ -1,5 +1,7 @@
 #include "../../includes/globals.h"
 #include "../../includes/MathUtils.h"
+#include "../../includes/RowPaddedArray.h"
+#include "../../includes/ColPaddedArray.h"
 
 size_t ceilDiv(const size_t x, const size_t y) {
   return 1 + ((x - 1) / y);
@@ -67,17 +69,19 @@ std::vector<int32_t> clauseInspection(std::vector<std::vector<int32_t>>& matrix,
   return result;
 }
 
-std::map<int, std::vector<int32_t>> clauseInspectionMulti(std::map<int, std::vector<int32_t>>& matrix, std::vector<int32_t>& assignments) {
+std::map<int, std::vector<int32_t>> clauseInspectionMulti(
+  std::map<int, std::vector<std::vector<int32_t>>>& matrixMap, std::vector<int32_t>& assignments) {
   std::map<int, std::vector<int32_t>> target;
 
-  for (auto const& entry : matrix) {
-    int M = entry.second.size() / entry.first;
+  for (auto const& entry : matrixMap) {
+    int M = entry.second.size();
+
     std::vector<int32_t> currResult(M);
     for (int i = 0; i < M; i++) {
       int result = UNRES;
       int count = 0;
       for (int k = 0; k < entry.first; k++) {
-        int lit = entry.second.at(i * entry.first + k);
+        int lit = entry.second.at(i).at(k);
         int val = assignments.at(lit);
         if (val == UNDEF) {
           count++;
@@ -104,11 +108,38 @@ std::map<int, std::vector<int32_t>> clauseInspectionMulti(std::map<int, std::vec
   return target;
 }
 
-std::map<int, std::vector<int32_t>> transformToMultiPage(std::vector<std::vector<int32_t>>& in) {
-  std::map<int, std::vector<int32_t>> out;
-  for (auto it = in.begin(); it != in.end(); ++it) {
-    unsigned int size = it->size();
-    out[size].insert(out[size].end(), it->begin(), it->end());
+std::map<int, std::vector<std::vector<int32_t>>> getMultiPages(std::vector<std::vector<int32_t>>& in) {
+  std::map<int, std::vector<int32_t>> sizeToRowMap;
+  for (int i = 0; i < in.size(); i++) {
+    unsigned int size = in.at(i).size();
+    sizeToRowMap[size].push_back(i);
   }
+
+  std::map<int, std::vector<std::vector<int32_t>>> multiPages;
+  for (auto it = sizeToRowMap.begin(); it != sizeToRowMap.end(); ++it) {
+    unsigned int size = it->first;
+    std::vector<int32_t> rows = it->second;
+    for (int i = 0; i < rows.size(); i++) {
+      multiPages[size].push_back(in.at(rows.at(i)));
+    }
+  }
+  return multiPages;
+}
+
+std::map<int, std::unique_ptr<CLArray>> transformToMultiPage(std::map<int, std::vector<std::vector<int32_t>>>& multiPages, 
+  std::string name, int bitSize, bool prefetch, Transform transform, int workGroupSize) {
+  std::map<int, std::unique_ptr<CLArray>> out;
+  for (auto it = multiPages.begin(); it != multiPages.end(); ++it) {
+    unsigned int size = it->first;
+
+    std::unique_ptr<CLArray> clArray;
+    if (transform == Transform::ROW_MAJOR) {
+      clArray = std::unique_ptr<RowPaddedArray>(new RowPaddedArray(name, bitSize, prefetch, it->second, workGroupSize));
+    } else if (transform == Transform::COL_MAJOR) {
+      clArray = std::unique_ptr<ColPaddedArray>(new ColPaddedArray(name, bitSize, prefetch, it->second, workGroupSize));
+    } 
+    out[size] = std::move(clArray);
+  }
+
   return out;
 }

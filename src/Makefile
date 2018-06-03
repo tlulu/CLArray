@@ -25,7 +25,8 @@ TEST_OBJECTS = \
 	tests/PackedArrayTest.o \
 	tests/RowPaddedArrayTest.o \
 	tests/ColPaddedArrayTest.o \
-	tests/OffsetArrayTest.o
+	tests/OffsetArrayTest.o \
+	tests/MultipageTest.o
 
 CLAUSE_EXEC = $(OBJ_DIR)/clause
 TEST_EXEC = $(OBJ_DIR)/unitTests
