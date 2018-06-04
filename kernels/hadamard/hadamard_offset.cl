@@ -11,13 +11,16 @@ __kernel void hadamard(const int M,
   const int i = get_global_id(0);
   const int j = get_global_id(1);
 
-  const int N = A_offsets_get(Local_A_Offsets, i + 1) - A_offsets_get(Local_A_Offsets, i);
+  const int start = A_offsets_get(Local_A_Offsets, i);
+  const int next = A_offsets_get(Local_A_Offsets, i + 1);
+  const int N = next - start;
 
   if (i >= M) return;
   if (j >= N) return;
 
-  int a = _2D_A_get(Local_A, i, j, Local_A_Offsets);
-  int b = _2D_B_get(Local_B, i, j);
+  const int a = _2D_A_get(Local_A, i, j, Local_A_Offsets);
+  const int b = _2D_B_get(Local_B, i, j);
 
-  C[i * N + j] = a * b;
+  // Output 2D array is in offset format.
+  C[start + j] = a * b;
 }

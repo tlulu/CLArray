@@ -16,7 +16,7 @@
 
 const std::string KERNEL_NAME = "hadamard";
 const std::string REF_KERNEL_NAME = "hadamard_ref";
-const std::string DATA = "../data/hadamard/medium_hada_bounded.test";
+const std::string DATA = "../data/hadamard/small_hada_bounded.test";
 
 const std::string OUTPUT_JSON_FILE = "bin/tuner_result.json";
 
@@ -65,8 +65,8 @@ void printResults() {
   }
 }
 
-void executeRowCol(const size_t M, const int width, std::unique_ptr<CLArray>& m1Array, 
-  std::unique_ptr<CLArray>& m2Array, TunerResult& tunerResult, size_t workGroupSize) {
+void executeRowCol(const size_t M, const size_t width, std::unique_ptr<CLArray>& m1Array, 
+  std::unique_ptr<CLArray>& m2Array, std::vector<int32_t>& target, TunerResult& tunerResult, size_t workGroupSize) {
   const std::string KERNEL = "../kernels/hadamard/hadamard.cl";
 
   // Build kernel header
@@ -78,9 +78,9 @@ void executeRowCol(const size_t M, const int width, std::unique_ptr<CLArray>& m1
   std::string kernel = appendKernelHeader(KERNEL, kernelHeader);
 
   // CLTune tuner parameters
-  std::vector<int32_t> result(M);
+  std::vector<int32_t> result(M * width);
   cltune::Tuner tuner(size_t{PLATFORM_ID}, size_t{DEVICE_ID});
-  tuner.AddKernelFromString(kernel, KERNEL_NAME, {M}, {workGroupSize});
+  tuner.AddKernelFromString(kernel, KERNEL_NAME, {M, width}, {workGroupSize / 2, workGroupSize / 2});
   const auto startTime = std::chrono::steady_clock::now();
   tuner.AddArgumentScalar((int)M);
   tuner.AddArgumentScalar(width);
@@ -94,6 +94,8 @@ void executeRowCol(const size_t M, const int width, std::unique_ptr<CLArray>& m1
   tuner.PrintJSON(OUTPUT_JSON_FILE, {});
 
   // Verify results
+  tuner.GetOutput(result);
+  verifyOutput(target, result);
 
   // Store result
   tunerResult.dataTransferTime = dataTransferTime;
@@ -101,8 +103,9 @@ void executeRowCol(const size_t M, const int width, std::unique_ptr<CLArray>& m1
   tunerResults.push_back(tunerResult);
 }
 
-void executeOffset(const size_t M, std::unique_ptr<OffsetArray>& m1Array, std::unique_ptr<CLArray>& m2Array, 
-  TunerResult& tunerResult, size_t workGroupSize) {
+void executeOffset(const size_t M, const size_t maxWidth, const size_t totalElements,
+  std::unique_ptr<OffsetArray>& m1Array, std::unique_ptr<CLArray>& m2Array, 
+  std::vector<int32_t>& target, TunerResult& tunerResult, size_t workGroupSize) {
   const std::string KERNEL = "../kernels/hadamard/hadamard_offset.cl";
 
   // Build kernel header
@@ -114,9 +117,9 @@ void executeOffset(const size_t M, std::unique_ptr<OffsetArray>& m1Array, std::u
   std::string kernel = appendKernelHeader(KERNEL, kernelHeader);
 
   // CLTune tuner parameters
-  std::vector<int32_t> result(M);
+  std::vector<int32_t> result(totalElements);
   cltune::Tuner tuner(size_t{PLATFORM_ID}, size_t{DEVICE_ID});
-  tuner.AddKernelFromString(kernel, KERNEL_NAME, {M}, {workGroupSize});
+  tuner.AddKernelFromString(kernel, KERNEL_NAME, {M, maxWidth}, {workGroupSize / 2, workGroupSize / 2});
   const auto startTime = std::chrono::steady_clock::now();
   tuner.AddArgumentScalar((int)M);
   tuner.AddArgumentInput(m1Array->getArray());
@@ -130,12 +133,16 @@ void executeOffset(const size_t M, std::unique_ptr<OffsetArray>& m1Array, std::u
   tuner.PrintJSON(OUTPUT_JSON_FILE, {});
 
   // Verify results
+  tuner.GetOutput(result);
+  verifyOutput(target, result);
 
   // Store result
   tunerResult.dataTransferTime = dataTransferTime;
   tunerResult.executionTime = getExecutionResult(OUTPUT_JSON_FILE);
   tunerResults.push_back(tunerResult);
 }
+
+
 
 void tuneKernel(std::vector<std::vector<int32_t>>& m1, ArrayConfig2D& m1Config,
   std::vector<std::vector<int32_t>>& m2, ArrayConfig2D& m2Config) {
@@ -173,14 +180,27 @@ void tuneKernel(std::vector<std::vector<int32_t>>& m1, ArrayConfig2D& m1Config,
                 if (m1Transform == Transform::ROW_MAJOR) {
                   std::unique_ptr<CLArray> m1Array = std::unique_ptr<RowPaddedArray>(new RowPaddedArray("A", m1BitSize, m1Prefetch, m1));
                   const int width = static_cast<RowPaddedArray*>(m1Array.get())->getWidth();
-                  executeRowCol(M, width, m1Array, m2Array, tunerResult, workGroupSize);
+                  std::vector<std::vector<int32_t>> paddedM1 = m1;
+                  std::vector<std::vector<int32_t>> paddedM2 = m2;
+                  addPadding(&paddedM1);
+                  addPadding(&paddedM2);
+                  std::vector<int32_t> target = hadamardTarget(paddedM1, paddedM2);
+                  executeRowCol(M, width, m1Array, m2Array, target, tunerResult, workGroupSize);
                 } else if (m1Transform == Transform::COL_MAJOR) {
                   std::unique_ptr<CLArray> m1Array = std::unique_ptr<ColPaddedArray>(new ColPaddedArray("A", m1BitSize, m1Prefetch, m1));
                   const int width = static_cast<ColPaddedArray*>(m1Array.get())->getWidth();
-                  executeRowCol(M, width, m1Array, m2Array, tunerResult, workGroupSize);
+                  std::vector<std::vector<int32_t>> paddedM1 = m1;
+                  std::vector<std::vector<int32_t>> paddedM2 = m2;
+                  addPadding(&paddedM1);
+                  addPadding(&paddedM2);
+                  std::vector<int32_t> target = hadamardTarget(paddedM1, paddedM2);
+                  executeRowCol(M, width, m1Array, m2Array, target, tunerResult, workGroupSize);
                 } else if (m1Transform == Transform::OFFSET) {
                   std::unique_ptr<OffsetArray> m1Array = std::unique_ptr<OffsetArray>(new OffsetArray("A", m1BitSize, m1Prefetch, m1, workGroupSize));
-                  executeOffset(M, m1Array, m2Array, tunerResult, workGroupSize);
+                  std::vector<int32_t> target = hadamardTarget(m1, m2);
+                  int maxWidth = getMaxWidth(m1);
+                  int totalElements = getNumElements(m1);
+                  executeOffset(M, maxWidth, totalElements, m1Array, m2Array, target, tunerResult, workGroupSize);
                 }
               }
             }
@@ -200,7 +220,7 @@ int main(int argc, char *argv[]) {
   ArrayConfig2D m1Config;
   m1Config.bitSizes = {32}; // DO NOT BITPACK NEGATIVE VALUES!!
   m1Config.prefetches = {false};
-  m1Config.transforms = {Transform::ROW_MAJOR, Transform::COL_MAJOR, Transform::OFFSET, Transform::MULTI_PAGE};
+  m1Config.transforms = {Transform::ROW_MAJOR, Transform::COL_MAJOR, Transform::OFFSET};
 
   ArrayConfig2D m2Config;
   m2Config.bitSizes = {32};
