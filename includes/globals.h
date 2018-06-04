@@ -15,6 +15,7 @@
 
 // Tuner constants
 #define MAX_BITSIZE 32
+#define NUMRUNS 20
 
 enum Transform {
   ROW_MAJOR = 1,
@@ -34,7 +35,11 @@ struct ArrayConfig2D {
 	std::vector<Transform> transforms;
 };
 
-#define NUMRUNS 20
+struct TunerOutput {
+  double dataTransferTime;
+  double executionTime;
+  double bestExecutionTime;
+};
 
 // Clause inspection constants
 enum Assignment {

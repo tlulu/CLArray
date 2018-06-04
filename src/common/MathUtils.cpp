@@ -153,11 +153,3 @@ std::vector<int32_t> hadamardTarget(std::vector<std::vector<int32_t>>& m1,
   }
   return target;
 }
-
-// std::map<int, std::vector<int32_t>> hadamardTargetMulti(std::map<int, std::vector<std::vector<int32_t>>>& matrixMap) {
-//   std::map<int, std::vector<int32_t>> target;
-//   for (auto entry : matrixMap) {
-//     target.insert({entry.first, hadamardTarget(entry.second, assignments)});
-//   }
-//   return target;
-// }
