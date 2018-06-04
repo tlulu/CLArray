@@ -2,7 +2,6 @@ __kernel void clause_inspection(const int M,
                       const int Length,
                       const __global int* Clauses,
                       const __global int* Assignments,
-                      const __global int* Target,
                       __global int* C) {
 
   enum Assignment {TRUE = 1, FALSE = 0, UNDEF = 2};

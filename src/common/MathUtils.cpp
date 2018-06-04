@@ -100,7 +100,7 @@ std::map<int, std::unique_ptr<CLArray>> transformToMultiPage(std::map<int, std::
   return out;
 }
 
-std::vector<int32_t> clauseInspection(std::vector<std::vector<int32_t>>& matrix, std::vector<int32_t>& assignments) {
+std::vector<int32_t> clauseInspectionTarget(std::vector<std::vector<int32_t>>& matrix, std::vector<int32_t>& assignments) {
   std::vector<int32_t> result(matrix.size());
   for (int i = 0; i < matrix.size(); i++) {
     int clauseResult = UNRES;
@@ -132,15 +132,6 @@ std::vector<int32_t> clauseInspection(std::vector<std::vector<int32_t>>& matrix,
     result[i] = clauseResult;
   }
   return result;
-}
-
-std::map<int, std::vector<int32_t>> clauseInspectionMulti(
-  std::map<int, std::vector<std::vector<int32_t>>>& matrixMap, std::vector<int32_t>& assignments) {
-  std::map<int, std::vector<int32_t>> target;
-  for (auto entry : matrixMap) {
-    target.insert({entry.first, clauseInspection(entry.second, assignments)});
-  }
-  return target;
 }
 
 std::vector<int32_t> hadamardTarget(std::vector<std::vector<int32_t>>& m1, 

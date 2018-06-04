@@ -155,6 +155,8 @@ TunerOutput executeMultipage(std::vector<std::vector<int32_t>>& m1, std::vector<
   std::map<int, std::unique_ptr<CLArray>> arrMapM2 = transformToMultiPage(multiPagesM2, "B", m2BitSize, false, Transform::ROW_MAJOR, workGroupSize);
   
   TunerOutput tunerOutput;
+  tunerOutput.dataTransferTime = 0.0;
+  tunerOutput.executionTime = 0.0;
   for (auto it = arrMapM1.begin(); it != arrMapM1.end(); ++it) {
     const int width = it->first;
     std::unique_ptr<CLArray> m1Array = std::move(it->second);

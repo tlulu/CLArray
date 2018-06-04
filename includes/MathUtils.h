@@ -21,8 +21,7 @@ std::map<int, std::vector<std::vector<int32_t>>> getMultiPages(std::vector<std::
 std::map<int, std::unique_ptr<CLArray>> transformToMultiPage(std::map<int, std::vector<std::vector<int32_t>>>& multiPages, std::string name, int bitSize, bool prefetch, Transform transform, int workGroupSize);
 
 // Clause Inspection
-std::vector<int32_t> clauseInspection(std::vector<std::vector<int32_t>>& matrix, std::vector<int32_t>& assignments);
-std::map<int, std::vector<int32_t>> clauseInspectionMulti(std::map<int, std::vector<std::vector<int32_t>>>& matrixMap, std::vector<int32_t>& assignments);
+std::vector<int32_t> clauseInspectionTarget(std::vector<std::vector<int32_t>>& matrix, std::vector<int32_t>& assignments);
 
 // Hadamard
 std::vector<int32_t> hadamardTarget(std::vector<std::vector<int32_t>>& m1, std::vector<std::vector<int32_t>>& m2);
