@@ -1,5 +1,9 @@
 #include "../../includes/globals.h"
 #include "../../includes/MathUtils.h"
+#include "../../includes/RowPaddedArray.h"
+#include "../../includes/ColPaddedArray.h"
+
+#include <iostream>
 
 size_t ceilDiv(const size_t x, const size_t y) {
   return 1 + ((x - 1) / y);
@@ -29,10 +33,77 @@ void addPadding(std::vector<std::vector<int32_t>>* m) {
   }
 }
 
-std::vector<int32_t> clauseInspection(std::vector<std::vector<int32_t>>& matrix, std::vector<int32_t>& assignments) {
+void verifyOutput(std::vector<int32_t>& expected, std::vector<int32_t>& actual) {
+  assert(actual.size() != 0);
+
+  if (expected.size() != actual.size()) {
+    std::cout << "expected size: " << expected.size() << ", actual size: " << actual.size() << std::endl;
+  }
+  assert(expected.size() == actual.size());
+  for (int i = 0; i < expected.size(); i++) {
+    if (expected.at(i) != actual.at(i)) {
+      std::cout << "expected: " << expected.at(i) << ", actual: " << actual.at(i) << std::endl;
+    }
+    assert(expected.at(i) == actual.at(i));
+  }
+}
+
+int getMaxWidth(std::vector<std::vector<int32_t>>& m) {
+  int max = 0;
+  for (int i = 0; i < m.size(); i++) {
+    max = std::max(max, (int)(m.at(i).size()));
+  }
+  return max;
+}
+
+int getNumElements(std::vector<std::vector<int32_t>>& m) {
+  int count = 0;
+  for (int i = 0; i < m.size(); i++) {
+    count += m.at(i).size();
+  }
+  return count;
+}
+
+std::map<int, std::vector<std::vector<int32_t>>> getMultiPages(std::vector<std::vector<int32_t>>& in) {
+  std::map<int, std::vector<int32_t>> sizeToRowMap;
+  for (int i = 0; i < in.size(); i++) {
+    unsigned int size = in.at(i).size();
+    sizeToRowMap[size].push_back(i);
+  }
+
+  std::map<int, std::vector<std::vector<int32_t>>> multiPages;
+  for (auto it = sizeToRowMap.begin(); it != sizeToRowMap.end(); ++it) {
+    unsigned int size = it->first;
+    std::vector<int32_t> rows = it->second;
+    for (int i = 0; i < rows.size(); i++) {
+      multiPages[size].push_back(in.at(rows.at(i)));
+    }
+  }
+  return multiPages;
+}
+
+std::map<int, std::unique_ptr<CLArray>> transformToMultiPage(std::map<int, std::vector<std::vector<int32_t>>>& multiPages, 
+  std::string name, int bitSize, bool prefetch, Transform transform, int workGroupSize) {
+  std::map<int, std::unique_ptr<CLArray>> out;
+  for (auto it = multiPages.begin(); it != multiPages.end(); ++it) {
+    unsigned int size = it->first;
+
+    std::unique_ptr<CLArray> clArray;
+    if (transform == Transform::ROW_MAJOR) {
+      clArray = std::unique_ptr<RowPaddedArray>(new RowPaddedArray(name, bitSize, prefetch, it->second, workGroupSize));
+    } else if (transform == Transform::COL_MAJOR) {
+      clArray = std::unique_ptr<ColPaddedArray>(new ColPaddedArray(name, bitSize, prefetch, it->second, workGroupSize));
+    } 
+    out[size] = std::move(clArray);
+  }
+
+  return out;
+}
+
+std::vector<int32_t> clauseInspectionTarget(std::vector<std::vector<int32_t>>& matrix, std::vector<int32_t>& assignments) {
   std::vector<int32_t> result(matrix.size());
   for (int i = 0; i < matrix.size(); i++) {
-    int clause_result = UNRES;
+    int clauseResult = UNRES;
     int count = 0;
 
     for (int j = 0; j < matrix.at(i).size(); j++) {
@@ -46,69 +117,30 @@ std::vector<int32_t> clauseInspection(std::vector<std::vector<int32_t>>& matrix,
       }
     }
 
-    if (result[i] != SAT) {
-      // Return clause state based on count
-      if (count == matrix.at(i).size()) {
-        clause_result = WASTE;
-      }
-      else if (count == 0) {
-        clause_result = CONFLICT;
-      }
-      else if (count == 1) {
-        clause_result = UNIT;
-      }
-      else {
-        clause_result = UNRES;
-      }
-
-      result[i] = clause_result;
+    if (result[i] == SAT) continue;
+    
+    // Return clause state based on count
+    if (count == matrix.at(i).size()) {
+      clauseResult = WASTE;
+    } else if (count == 0) {
+      clauseResult = CONFLICT;
+    } else if (count == 1) {
+      clauseResult = UNIT;
+    } else {
+      clauseResult = UNRES;
     }
+    result[i] = clauseResult;
   }
   return result;
 }
 
-std::map<int, std::vector<int32_t>> clauseInspectionMulti(std::map<int, std::vector<int32_t>>& matrix, std::vector<int32_t>& assignments) {
-  std::map<int, std::vector<int32_t>> target;
-
-  for (auto const& entry : matrix) {
-    int M = entry.second.size() / entry.first;
-    std::vector<int32_t> currResult(M);
-    for (int i = 0; i < M; i++) {
-      int result = UNRES;
-      int count = 0;
-      for (int k = 0; k < entry.first; k++) {
-        int lit = entry.second.at(i * entry.first + k);
-        int val = assignments.at(lit);
-        if (val == UNDEF) {
-          count++;
-        } else if (val == TRUE) {
-          currResult[i] = SAT;
-          break;
-        }
-      }
-      if (currResult[i] == SAT) continue;
-      // Return clause state based on count
-      if (count == entry.first) {
-        result = WASTE;
-      } else if (count == 0) {
-        result = CONFLICT;
-      } else if (count == 1) {
-        result = UNIT;
-      } else {
-        result = UNRES;
-      }
-      currResult[i] = result;
+std::vector<int32_t> hadamardTarget(std::vector<std::vector<int32_t>>& m1, 
+  std::vector<std::vector<int32_t>>& m2) {
+  std::vector<int32_t> target;
+  for (int i = 0; i < m1.size(); i++) {
+    for (int j = 0; j < m1.at(i).size(); j++) {
+      target.push_back(m1.at(i).at(j) * m2.at(i).at(j));
     }
-    target.insert({entry.first, currResult});
   }
   return target;
-}
-
-std::map<int, std::vector<int32_t>> transformToMultiPage(std::vector<std::vector<int32_t>>& in) {
-  std::map<int, std::vector<int32_t>> out;
-  for (auto it = in.begin(); it != in.end(); ++it) {
-    unsigned int size = it->size();
-    out[size].insert(out[size].end(), it->begin(), it->end());
-  }
-  return out;
 }

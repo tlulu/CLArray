@@ -31,6 +31,10 @@ std::vector<int32_t> OffsetArray::getArray() {
   return packedArray_->getArray();
 }
 
+int OffsetArray::numElements() {
+  return packedArray_->numElements();
+}
+
 int32_t OffsetArray::elementAt(const int i, const int j) {
 	return packedArray_->elementAt(offsets_->elementAt(i) + j);
 }

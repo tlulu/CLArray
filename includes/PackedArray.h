@@ -12,6 +12,7 @@ class PackedArray : public CLArray {
 	  	std::vector<int32_t> a, int workgroupSize = 1);
 	  virtual std::string generateOpenCLCode();
 	  virtual std::vector<int32_t> getArray(); // Returns the packed array.
+	  virtual int numElements();
 
 	  int32_t elementAt(const int index);
 	  std::vector<int32_t> unpack();

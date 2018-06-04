@@ -10,6 +10,7 @@ class CLArray {
   	virtual ~CLArray();
   	virtual std::string generateOpenCLCode() = 0;
   	virtual std::vector<int32_t> getArray() = 0;
+  	virtual int numElements() = 0; // Number of logical elements in the array.
 
   protected:
   	std::string getName();

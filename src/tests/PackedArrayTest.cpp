@@ -59,6 +59,7 @@ TEST(PackedArrayTest, elementAt) {
 	std::unique_ptr<PackedArray> packedArray(new PackedArray("packed", bitSize, false, vec));
 
 	EXPECT_EQ(packedArray->getArray().size(), 2);
+	EXPECT_EQ(packedArray->numElements(), 20);
 	EXPECT_EQ(packedArray->elementAt(0), 1);
 	EXPECT_EQ(packedArray->elementAt(8), 3);
 	EXPECT_EQ(packedArray->elementAt(16), 2);
