@@ -1,3 +1,5 @@
+OS = $(shell uname)
+
 CXX = g++
 CXXFLAGS = -Wall -std=c++11
 
@@ -32,8 +34,9 @@ TEST_OBJECTS = \
 CLAUSE_EXEC = $(OBJ_DIR)/clause
 HADAMARD_EXEC = $(OBJ_DIR)/hadamard
 TEST_EXEC = $(OBJ_DIR)/unitTests
+DEVICE_INFO_EXEC = $(OBJ_DIR)/deviceInfo
 
-EXECS = ${CLAUSE_EXEC} ${HADAMARD_EXEC} ${TEST_EXEC}
+EXECS = ${CLAUSE_EXEC} ${HADAMARD_EXEC} ${TEST_EXEC} ${DEVICE_INFO_EXEC}
 OBJECTS = \
 	${COMMON_OBJECTS} \
 	${LIB_OBJECTS} \
@@ -61,5 +64,12 @@ ${HADAMARD_EXEC}: ${COMMON_OBJECTS} ${TRANSFORM_OBJECTS} algorithms/Hadamard.o $
 
 ${TEST_EXEC}: ${COMMON_OBJECTS} ${TRANSFORM_OBJECTS} ${TEST_OBJECTS} ${LIB_OBJECTS}
 	${CXX} ${CXXFLAGS} $^ -o $@ -lgtest
+
+${DEVICE_INFO_EXEC}:
+ifeq ($(OS), Darwin)
+	${CXX} ${CXXFLAGS} DeviceInfo.cpp $^ -o $@ -framework OpenCL
+else
+	${CXX} ${CXXFLAGS} DeviceInfo.cpp $^ -o $@ -lOpenCL
+endif
 
 -include ${DEPENDS}
