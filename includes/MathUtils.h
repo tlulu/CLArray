@@ -5,6 +5,7 @@
 #include <vector>
 #include <map>
 #include <string>
+#include <memory>
 
 #include "globals.h"
 #include "CLArray.h"

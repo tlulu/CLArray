@@ -4,6 +4,7 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include <iterator>
 #include <stdlib.h>
 
 std::vector<std::vector<int32_t>> readMatrixFromFile(std::string fileName) {

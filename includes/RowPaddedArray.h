@@ -7,6 +7,7 @@
 
 #include <string>
 #include <vector>
+#include <memory>
 
 class RowPaddedArray : public CLArray, Array2D {
 	public:
