@@ -66,6 +66,20 @@ int getNumElements(std::vector<std::vector<int32_t>>& m) {
   return count;
 }
 
+std::vector<std::vector<int32_t>> initMatrix(int rows, int cols, int max) {
+  std::vector<std::vector<int32_t>> matrix;
+  int c = 1;
+  for (int i = 0; i < rows; i++) {
+    std::vector<int32_t> vec;
+    for (int j = 0; j < cols; j++) {
+      vec.push_back(c % max);
+      c++;
+    }
+    matrix.push_back(vec);
+  }
+  return matrix;
+}
+
 std::map<int, std::vector<std::vector<int32_t>>> getMultiPages(std::vector<std::vector<int32_t>>& in) {
   std::map<int, std::vector<int32_t>> sizeToRowMap;
   for (int i = 0; i < in.size(); i++) {
@@ -142,6 +156,24 @@ std::vector<int32_t> hadamardTarget(std::vector<std::vector<int32_t>>& m1,
   for (int i = 0; i < m1.size(); i++) {
     for (int j = 0; j < m1.at(i).size(); j++) {
       target.push_back(m1.at(i).at(j) * m2.at(i).at(j));
+    }
+  }
+  return target;
+}
+
+std::vector<int32_t> getMultiplicationTarget(std::vector<std::vector<int32_t>>& m1, 
+  std::vector<std::vector<int32_t>>& m2) {
+  std::vector<int32_t> target;
+  const int M = m1.size();
+  const int K = m1.at(0).size();
+  const int N = m2.at(0).size();
+  for (int i = 0; i < M; i++) {
+    for (int j = 0; j < N; j++) {
+      int acc = 0;
+      for (int k = 0; k < K; k++) {
+        acc += m1.at(i).at(k) * m2.at(k).at(j);
+      }
+      target.push_back(acc);
     }
   }
   return target;
