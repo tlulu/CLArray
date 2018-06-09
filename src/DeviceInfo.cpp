@@ -12,6 +12,11 @@
 
 // More details: https://www.khronos.org/registry/OpenCL/sdk/1.0/docs/man/xhtml/clGetDeviceInfo.html
 
+const std::string KERNEL_CODE = "__kernel void vector_add(const int n, __global float *a, __global float *b, __global float *c) {"
+  "const int i = get_global_id(0);"
+  "c[i] = a[i] + b[i];"
+"}";
+
 cl_kernel createKernelFromSource(cl_device_id device_id, cl_context context,
         const char *source, const char *name) {
     int err;
@@ -131,9 +136,7 @@ int main() {
 
             // print preferred work group size multiple
             context = clCreateContext(0, 1, &devices[j], NULL, NULL, NULL);
-            std::ifstream kernel_file{"../kernels/info/simple_kernel.cl"};
-            std::string kernel_source{std::istreambuf_iterator<char>(kernel_file), std::istreambuf_iterator<char>()};
-            kernel = createKernelFromSource(devices[j], context, kernel_source.c_str(), "vector_add");
+            kernel = createKernelFromSource(devices[j], context, KERNEL_CODE.c_str(), "vector_add");
             clGetKernelWorkGroupInfo(kernel, devices[j], CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE,
                 sizeof(preferredWorkGroupSizeMultiple), &preferredWorkGroupSizeMultiple, NULL);
             printf(" %d.%d Preferred work group size multiple: %zu\n", j+1, 9, preferredWorkGroupSizeMultiple);
