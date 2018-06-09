@@ -188,11 +188,6 @@ std::vector<int32_t> PackedArray::pack(const std::vector<int32_t>& a) {
 		}
 	}
 
-	// Mask remaining bits of the last word.
-	int remainingWordSize = getRemainingWordSize(a.size());
-	int32_t mask =  ~(getMaxValue(remainingWordSize));
-	words[numWords - 1] = words[numWords - 1] & mask;
-
 	return words;
 }
 

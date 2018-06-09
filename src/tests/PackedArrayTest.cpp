@@ -53,6 +53,23 @@ TEST(PackedArrayTest, smallestIntsOneWord) {
 	EXPECT_EQ(vec, unpacked);
 }
 
+TEST(PackedArrayTest, fourIntsTwoWords) {
+	int bitSize = 16;
+	std::vector<int32_t> vec = {4, 1000, 90, 500};
+	std::vector<int32_t> unpacked;
+
+	packAndUnPack(vec, bitSize, unpacked);
+	EXPECT_EQ(vec, unpacked);
+
+	std::unique_ptr<PackedArray> packedArray(new PackedArray("packed", bitSize, false, vec));
+	EXPECT_EQ(packedArray->getArray().size(), 2);
+	EXPECT_EQ(packedArray->numElements(), 4);
+	EXPECT_EQ(packedArray->elementAt(0), 4);
+	EXPECT_EQ(packedArray->elementAt(1), 1000);
+	EXPECT_EQ(packedArray->elementAt(2), 90);
+	EXPECT_EQ(packedArray->elementAt(3), 500);
+}
+
 TEST(PackedArrayTest, elementAt) {
 	int bitSize = 2;
 	std::vector<int32_t> vec = {1, 2, 3, 1, 3, 2, 1, 0, 3, 2, 1, 3, 1, 1, 3, 2, 2, 2, 0, 1};
