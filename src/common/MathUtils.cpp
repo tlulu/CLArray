@@ -3,6 +3,8 @@
 #include "../../includes/RowPaddedArray.h"
 #include "../../includes/ColPaddedArray.h"
 
+#include <assert.h>
+
 #include <iostream>
 
 size_t ceilDiv(const size_t x, const size_t y) {

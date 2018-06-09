@@ -8,6 +8,8 @@
 #include "../../includes/globals.h"
 #include "../../includes/cltune.h"
 
+#include <assert.h>
+
 #include <iostream>
 #include <vector>
 #include <string>

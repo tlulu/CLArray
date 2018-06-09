@@ -2,6 +2,7 @@
 #define __Array2D_H__
 
 #include <vector>
+#include <cstdint>
 
 class Array2D {
 	public:
