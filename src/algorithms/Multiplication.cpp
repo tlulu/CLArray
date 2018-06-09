@@ -114,6 +114,8 @@ void tuneKernel(std::vector<std::vector<int32_t>>& m1, ArrayConfig2D& m1Config,
   const size_t K = m1.at(0).size();
   const size_t N = m2.at(0).size();
 
+  std::vector<int32_t> target = getMultiplicationTarget(m1, m2);
+
   for (auto workGroupSize : WORKGROUP_SIZES) {
   	for (auto m1BitSize : m1Config.bitSizes) {
   		for (auto m1Prefetch : m1Config.prefetches) {
@@ -139,7 +141,6 @@ void tuneKernel(std::vector<std::vector<int32_t>>& m1, ArrayConfig2D& m1Config,
                   m2Array = std::unique_ptr<ColPaddedArray>(new ColPaddedArray("B", m2BitSize, m2Prefetch, m2));
                 } 
 
-                std::vector<int32_t> target = getMultiplicationTarget(m1, m2);
                 tunerOutput = executeRowCol(M, K, N, m1Array, m2Array, target, workGroupSize);
 
                 // Store result
@@ -166,8 +167,8 @@ void tuneKernel(std::vector<std::vector<int32_t>>& m1, ArrayConfig2D& m1Config,
 }
 
 int main(int argc, char *argv[]) {
-	std::vector<std::vector<int32_t>> m1 = initMatrix(512, 256, 4);
-  std::vector<std::vector<int32_t>> m2 = initMatrix(256, 2048, 4);
+	std::vector<std::vector<int32_t>> m1 = initMatrix(1024, 512, 1000);
+  std::vector<std::vector<int32_t>> m2 = initMatrix(512, 2048, 1000);
 
   ArrayConfig2D m1Config;
   m1Config.bitSizes = {32};
