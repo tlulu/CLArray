@@ -44,7 +44,7 @@ void verifyOutput(std::vector<int32_t>& expected, std::vector<int32_t>& actual) 
   assert(expected.size() == actual.size());
   for (int i = 0; i < expected.size(); i++) {
     if (expected.at(i) != actual.at(i)) {
-      std::cout << "expected: " << expected.at(i) << ", actual: " << actual.at(i) << std::endl;
+      std::cout << "row: " << i << " expected: " << expected.at(i) << ", actual: " << actual.at(i) << std::endl;
     }
     assert(expected.at(i) == actual.at(i));
   }

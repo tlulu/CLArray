@@ -64,7 +64,8 @@ void printResults() {
 }
 
 TunerOutput executeRowCol(const size_t M, const int width, std::unique_ptr<CLArray>& clauseDB, 
-  std::unique_ptr<PackedArray>& assignmentsArray, std::vector<int32_t>& target, size_t workGroupSize) {
+  std::unique_ptr<PackedArray>& assignmentsArray, std::unique_ptr<PackedArray>& lengthsArray,
+  std::vector<int32_t>& target, size_t workGroupSize) {
   assert(clauseDB->numElements() != 0);
   assert(assignmentsArray->numElements() != 0);
 
@@ -74,6 +75,7 @@ TunerOutput executeRowCol(const size_t M, const int width, std::unique_ptr<CLArr
   std::string kernelHeader = "";
   kernelHeader += clauseDB->generateOpenCLCode();
   kernelHeader += assignmentsArray->generateOpenCLCode();
+  kernelHeader += lengthsArray->generateOpenCLCode();
   std::cout << "GENERATED OPENCL HEADER" << std::endl;
   std::cout << kernelHeader;
   std::string kernel = appendKernelHeader(KERNEL, kernelHeader);
@@ -84,9 +86,9 @@ TunerOutput executeRowCol(const size_t M, const int width, std::unique_ptr<CLArr
   tuner.AddKernelFromString(kernel, KERNEL_NAME, {M}, {workGroupSize});
   const auto startTime = std::chrono::steady_clock::now();
   tuner.AddArgumentScalar((int)M);
-  tuner.AddArgumentScalar(width);
   tuner.AddArgumentInput(clauseDB->getArray());
   tuner.AddArgumentInput(assignmentsArray->getArray());
+  tuner.AddArgumentInput(lengthsArray->getArray());
   tuner.AddArgumentOutput(result);
   const auto cpuTime = std::chrono::steady_clock::now() - startTime;
   const auto dataTransferTime = std::chrono::duration<float,std::milli>(cpuTime).count();
@@ -162,9 +164,41 @@ TunerOutput executeMultipage(std::vector<std::vector<int32_t>>& clauses, std::ve
     assert(arr->numElements() % width == 0); // This should always be a full matrix
     uint32_t M = arr->numElements() / width;
 
-    TunerOutput output = executeRowCol(M, width, arr, assignmentsArray, target, workGroupSize);
-    tunerOutput.dataTransferTime += output.dataTransferTime;
-    tunerOutput.executionTime += output.bestExecutionTime;
+    assert(arr->numElements() != 0);
+    assert(assignmentsArray->numElements() != 0);
+
+    const std::string KERNEL = "../kernels/clause/clause_inspection_multi.cl";
+
+    // Build kernel header
+    std::string kernelHeader = "";
+    kernelHeader += arr->generateOpenCLCode();
+    kernelHeader += assignmentsArray->generateOpenCLCode();
+    std::cout << "GENERATED OPENCL HEADER" << std::endl;
+    std::cout << kernelHeader;
+    std::string kernel = appendKernelHeader(KERNEL, kernelHeader);
+
+    // CLTune tuner parameters
+    std::vector<int32_t> result(M);
+    cltune::Tuner tuner(size_t{PLATFORM_ID}, size_t{DEVICE_ID});
+    tuner.AddKernelFromString(kernel, KERNEL_NAME, {M}, {workGroupSize});
+    const auto startTime = std::chrono::steady_clock::now();
+    tuner.AddArgumentScalar((int)M);
+    tuner.AddArgumentScalar(width);
+    tuner.AddArgumentInput(arr->getArray());
+    tuner.AddArgumentInput(assignmentsArray->getArray());
+    tuner.AddArgumentOutput(result);
+    const auto cpuTime = std::chrono::steady_clock::now() - startTime;
+    const auto dataTransferTime = std::chrono::duration<float,std::milli>(cpuTime).count();
+    tuner.SetNumRuns(NUMRUNS);
+    tuner.Tune();
+    tuner.PrintJSON(OUTPUT_JSON_FILE, {});
+
+    // Verify results
+    tuner.GetOutput(result);
+    verifyOutput(target, result);
+
+    tunerOutput.dataTransferTime += dataTransferTime;
+    tunerOutput.executionTime += tuner.BestTime();
   }
   return tunerOutput;
 }
@@ -177,7 +211,14 @@ void tuneKernel(std::vector<std::vector<int32_t>>& clauses,
   const size_t M = clauses.size();
   std::vector<int32_t> target = clauseInspectionTarget(clauses, assignments);
 
+  std::vector<int32_t> lengths;
+  for (int i = 0; i < clauses.size(); i++) {
+    lengths.push_back(clauses.at(i).size());
+  }
+
   for (auto workGroupSize : WORKGROUP_SIZES) {
+    std::unique_ptr<PackedArray> lengthsArray(new PackedArray("lengths", 32, false, lengths, workGroupSize));
+
   	for (auto assignmentsBitSize : assignmentsConfig.bitSizes) {
   		for (auto assignmentsPrefetch : assignmentsConfig.prefetches) {
         for (auto clausesBitSize : clausesConfig.bitSizes) {
@@ -192,11 +233,11 @@ void tuneKernel(std::vector<std::vector<int32_t>>& clauses,
               if (clausesTransform == Transform::ROW_MAJOR) {
                 std::unique_ptr<CLArray> clauseDB = std::unique_ptr<RowPaddedArray>(new RowPaddedArray("clauses", clausesBitSize, clausesPrefetch, clauses));
                 const int width = static_cast<RowPaddedArray*>(clauseDB.get())->getWidth();
-                tunerOutput = executeRowCol(M, width, clauseDB, assignmentsArray, target, workGroupSize);
+                tunerOutput = executeRowCol(M, width, clauseDB, assignmentsArray, lengthsArray, target, workGroupSize);
               } else if (clausesTransform == Transform::COL_MAJOR) {
                 std::unique_ptr<CLArray> clauseDB = std::unique_ptr<ColPaddedArray>(new ColPaddedArray("clauses", clausesBitSize, clausesPrefetch, clauses));
                 const int width = static_cast<ColPaddedArray*>(clauseDB.get())->getWidth();
-                tunerOutput = executeRowCol(M, width, clauseDB, assignmentsArray, target, workGroupSize);
+                tunerOutput = executeRowCol(M, width, clauseDB, assignmentsArray, lengthsArray, target, workGroupSize);
               } else if (clausesTransform == Transform::OFFSET) {
                 std::unique_ptr<OffsetArray> clauseDB = std::unique_ptr<OffsetArray>(new OffsetArray("clauses", clausesBitSize, clausesPrefetch, clauses, workGroupSize));
                 tunerOutput = executeOffset(M, clauseDB, assignmentsArray, target, workGroupSize);
