@@ -17,7 +17,6 @@
 #include <iomanip>
 
 const std::string KERNEL_NAME = "hadamard";
-const std::string DATA = "../data/hadamard/small_hada_bounded.test";
 const std::string OUTPUT_JSON_FILE = "bin/tuner_result.json";
 
 struct TunerResult {
@@ -86,7 +85,7 @@ TunerOutput executeRowCol(const size_t M, const size_t width, std::unique_ptr<CL
   tuner.AddKernelFromString(kernel, KERNEL_NAME, {M, width}, {workGroupSize / 2, workGroupSize / 2});
   const auto startTime = std::chrono::steady_clock::now();
   tuner.AddArgumentScalar((int)M);
-  tuner.AddArgumentScalar(width);
+  tuner.AddArgumentScalar((int)width);
   tuner.AddArgumentInput(m1Array->getArray());
   tuner.AddArgumentInput(m2Array->getArray());
   tuner.AddArgumentOutput(result);
@@ -175,12 +174,12 @@ TunerOutput executeMultipage(std::vector<std::vector<int32_t>>& m1, std::vector<
   return tunerOutput;
 }
 
-void tuneKernel(std::vector<std::vector<int32_t>>& m1, ArrayConfig2D& m1Config,
+void tuneKernel(std::vector<size_t> workGroupSizes, 
+  std::vector<std::vector<int32_t>>& m1, ArrayConfig2D& m1Config,
   std::vector<std::vector<int32_t>>& m2, ArrayConfig2D& m2Config) {
-  const std::vector<size_t> WORKGROUP_SIZES = {32};
   const size_t M = m1.size();
 
-  for (auto workGroupSize : WORKGROUP_SIZES) {
+  for (auto workGroupSize : workGroupSizes) {
   	for (auto m1BitSize : m1Config.bitSizes) {
   		for (auto m1Prefetch : m1Config.prefetches) {
         for (auto m1Transform : m1Config.transforms) {
@@ -195,9 +194,21 @@ void tuneKernel(std::vector<std::vector<int32_t>>& m1, ArrayConfig2D& m1Config,
                   continue;
                 }
 
+                // Only test for when m1 is offset or when both are offset.
+                if (m1Transform != Transform::OFFSET && m2Transform == Transform::OFFSET) {
+                  continue;
+                }
+
                 // Execute multipage if both arrays are multipage
                 if (m1Transform == Transform::MULTI_PAGE && m2Transform == Transform::MULTI_PAGE) {
                   tunerOutput = executeMultipage(m1, m2, m1BitSize, m2BitSize, workGroupSize);
+                } else if (m1Transform == Transform::OFFSET && m2Transform == Transform::OFFSET) {
+                  std::unique_ptr<OffsetArray> m1Array = std::unique_ptr<OffsetArray>(new OffsetArray("A", m1BitSize, m1Prefetch, m1, workGroupSize));
+                  std::unique_ptr<CLArray> m2Array = std::unique_ptr<OffsetArray>(new OffsetArray("B", m2BitSize, m2Prefetch, m2, workGroupSize));
+                  std::vector<int32_t> target = hadamardTarget(m1, m2);
+                  int maxWidth = getMaxWidth(m1);
+                  int totalElements = getNumElements(m1);
+                  tunerOutput = executeOffset(M, maxWidth, totalElements, m1Array, m2Array, target, workGroupSize);
                 } else {
                   // Build M2 array.
                   std::unique_ptr<CLArray> m2Array;
@@ -259,18 +270,21 @@ void tuneKernel(std::vector<std::vector<int32_t>>& m1, ArrayConfig2D& m1Config,
 }
 
 int main(int argc, char *argv[]) {
+  const std::string DATA = "../data/hadamard/small_hada_bounded.test";
+  const std::vector<size_t> WORKGROUP_SIZES = {32};
+
 	std::vector<std::vector<int32_t>> m1 = readMatrixFromFile(DATA);
   std::vector<std::vector<int32_t>> m2 = m1;
 
   ArrayConfig2D m1Config;
-  m1Config.bitSizes = {32}; // DO NOT BITPACK NEGATIVE VALUES!!
+  m1Config.bitSizes = {32};
   m1Config.prefetches = {false};
   m1Config.transforms = {Transform::ROW_MAJOR, Transform::COL_MAJOR, Transform::OFFSET, Transform::MULTI_PAGE};
 
   ArrayConfig2D m2Config;
   m2Config.bitSizes = {32};
   m2Config.prefetches = {false};
-  m2Config.transforms = {Transform::ROW_MAJOR, Transform::COL_MAJOR, Transform::MULTI_PAGE};
+  m2Config.transforms = {Transform::ROW_MAJOR, Transform::COL_MAJOR, Transform::OFFSET, Transform::MULTI_PAGE};
 
-  tuneKernel(m1, m1Config, m2, m2Config);
+  tuneKernel(WORKGROUP_SIZES, m1, m1Config, m2, m2Config);
 }

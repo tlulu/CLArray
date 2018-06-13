@@ -17,8 +17,6 @@
 #include <iomanip>
 
 const std::string KERNEL_NAME = "clause_inspection";
-const std::string DATA = "../data/clause/small_clause.test";
-const std::string ASSIGNMENT_DATA = "../data/clause/assign.test";
 const std::string OUTPUT_JSON_FILE = "bin/tuner_result.json";
 
 struct TunerResult {
@@ -203,11 +201,9 @@ TunerOutput executeMultipage(std::vector<std::vector<int32_t>>& clauses, std::ve
   return tunerOutput;
 }
 
-void tuneKernel(std::vector<std::vector<int32_t>>& clauses,
-  ArrayConfig2D& clausesConfig,
-  std::vector<int32_t>& assignments,
-  ArrayConfig1D& assignmentsConfig) {
-  const std::vector<size_t> WORKGROUP_SIZES = {32};
+void tuneKernel(std::vector<size_t> workGroupSizes,
+  std::vector<std::vector<int32_t>>& clauses, ArrayConfig2D& clausesConfig,
+  std::vector<int32_t>& assignments, ArrayConfig1D& assignmentsConfig) {
   const size_t M = clauses.size();
   std::vector<int32_t> target = clauseInspectionTarget(clauses, assignments);
 
@@ -216,7 +212,7 @@ void tuneKernel(std::vector<std::vector<int32_t>>& clauses,
     lengths.push_back(clauses.at(i).size());
   }
 
-  for (auto workGroupSize : WORKGROUP_SIZES) {
+  for (auto workGroupSize : workGroupSizes) {
     std::unique_ptr<PackedArray> lengthsArray(new PackedArray("lengths", 32, false, lengths, workGroupSize));
 
   	for (auto assignmentsBitSize : assignmentsConfig.bitSizes) {
@@ -267,7 +263,11 @@ void tuneKernel(std::vector<std::vector<int32_t>>& clauses,
 }
 
 int main(int argc, char *argv[]) {
-	std::vector<std::vector<int32_t>> clauses = readMatrixFromFile(DATA);
+  const std::string DATA = "../data/clause/small_clause.test";
+  const std::string ASSIGNMENT_DATA = "../data/clause/assign.test";
+  const std::vector<size_t> WORKGROUP_SIZES = {32};
+	
+  std::vector<std::vector<int32_t>> clauses = readMatrixFromFile(DATA);
   std::vector<int32_t> assignments = readMatrixFromFile(ASSIGNMENT_DATA)[0];
 
   ArrayConfig2D clausesConfig;
@@ -279,5 +279,5 @@ int main(int argc, char *argv[]) {
   assignmentsConfig.bitSizes = {32};
   assignmentsConfig.prefetches = {false, true};
 
-  tuneKernel(clauses, clausesConfig, assignments, assignmentsConfig);
+  tuneKernel(WORKGROUP_SIZES, clauses, clausesConfig, assignments, assignmentsConfig);
 }

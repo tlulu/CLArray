@@ -19,7 +19,7 @@ __kernel void hadamard(const int M,
   if (j >= N) return;
 
   const int a = _2D_A_get(Local_A, i, j, Local_A_Offsets);
-  const int b = _2D_B_get(Local_B, i, j);
+  const int b = _2D_B_get(Local_B, i, j, Local_A_Offsets);
 
   // Output 2D array is in offset format.
   C[start + j] = a * b;

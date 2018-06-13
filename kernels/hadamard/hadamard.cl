@@ -12,8 +12,8 @@ __kernel void hadamard(const int M, const int N,
   if (i >= M) return;
   if (j >= N) return;
 
-  int a = _2D_A_get(Local_A, i, j);
-  int b = _2D_B_get(Local_B, i, j);
+  int a = _2D_A_get(Local_A, i, j, null);
+  int b = _2D_B_get(Local_B, i, j, null);
 
   // Output 2D array is in row major format.
   C[i * N + j] = a * b;

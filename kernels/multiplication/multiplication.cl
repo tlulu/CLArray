@@ -14,8 +14,8 @@ __kernel void multiplication(const int M, const int K, const int N,
 
   int acc = 0;
   for (int k = 0; k < K; k++) {
-    int a = _2D_A_get(Local_A, i, k);
-    int b = _2D_B_get(Local_B, k, j);
+    int a = _2D_A_get(Local_A, i, k, null);
+    int b = _2D_B_get(Local_B, k, j, null);
     acc += a * b;
   }
 

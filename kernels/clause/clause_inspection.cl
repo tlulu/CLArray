@@ -19,7 +19,7 @@ __kernel void clause_inspection(const int M,
   int result = UNRES;
   int count = 0;
   for (int k = 0; k < N; k++) {
-    int lit = _2D_clauses_get(Clauses, i, k);
+    int lit = _2D_clauses_get(Clauses, i, k, null);
     int val = assignments_get(Local_Assignments, lit);
     if (val == UNDEF) {
       count++;
