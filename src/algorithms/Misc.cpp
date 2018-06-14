@@ -96,8 +96,8 @@ TunerOutput executePrefetching(std::unique_ptr<CLArray>& m1Array, size_t workGro
   // Build kernel header
   std::string kernelHeader = "";
   kernelHeader += m1Array->generateOpenCLCode();
-  std::cout << "GENERATED OPENCL HEADER" << std::endl;
-  std::cout << kernelHeader;
+  //std::cout << "GENERATED OPENCL HEADER" << std::endl;
+  //std::cout << kernelHeader;
   std::string kernel = appendKernelHeader(KERNEL, kernelHeader);
 
   // CLTune tuner parameters
@@ -202,7 +202,6 @@ void prefetching(std::vector<size_t> workGroupSizes,
           TunerOutput tunerOutput;
 
           std::unique_ptr<CLArray> m1Array;
-          std::cout << "WORKGORUPSIZE: " << workGroupSize << std::endl;
           if (m1Transform == Transform::ROW_MAJOR) {
             m1Array = std::unique_ptr<RowPaddedArray>(new RowPaddedArray("A", m1BitSize, m1Prefetch, m1, workGroupSize));
           } else if (m1Transform == Transform::COL_MAJOR) {
@@ -268,9 +267,9 @@ void rowcol(std::vector<size_t> workGroupSizes,
 int main(int argc, char *argv[]) {
   const std::vector<size_t> WORKGROUP_SIZES = {256};
 
-  std::vector<std::vector<int32_t>> m1 = initMatrix(1, 100000000, 1000);
+  std::vector<std::vector<int32_t>> m1 = initMatrix(1, 100000000, 4);
   ArrayConfig2D m1Config;
-  m1Config.bitSizes = {16, 32};
+  m1Config.bitSizes = {2, 32};
   m1Config.prefetches = {false};
   m1Config.transforms = {Transform::ROW_MAJOR};
   packing(WORKGROUP_SIZES, m1, m1Config);
