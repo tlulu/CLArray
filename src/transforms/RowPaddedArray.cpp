@@ -10,7 +10,7 @@ RowPaddedArray::RowPaddedArray(std::string name, int bitSize, bool prefetch,
       addPadding(&m);
 
       width_ = m.at(0).size();
-      packedArray_ = std::unique_ptr<PackedArray>{new PackedArray(name, bitSize, prefetch, transform(m))};
+      packedArray_ = std::unique_ptr<PackedArray>{new PackedArray(name, bitSize, prefetch, transform(m), workgroupSizeX)};
     }
 
 std::string RowPaddedArray::generateOpenCLCode() {

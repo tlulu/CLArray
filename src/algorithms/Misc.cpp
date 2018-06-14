@@ -88,7 +88,7 @@ TunerOutput executePacking(const size_t M, std::unique_ptr<CLArray>& m1Array, si
   return tunerOutput;
 }
 
-TunerOutput executePrefetching(const size_t M, std::unique_ptr<CLArray>& m1Array, size_t workGroupSize) {
+TunerOutput executePrefetching(std::unique_ptr<CLArray>& m1Array, size_t workGroupSize) {
   assert(m1Array->numElements() != 0);
 
   const std::string KERNEL = "../kernels/misc/prefetching.cl";
@@ -96,8 +96,8 @@ TunerOutput executePrefetching(const size_t M, std::unique_ptr<CLArray>& m1Array
   // Build kernel header
   std::string kernelHeader = "";
   kernelHeader += m1Array->generateOpenCLCode();
-  // std::cout << "GENERATED OPENCL HEADER" << std::endl;
-  // std::cout << kernelHeader;
+  std::cout << "GENERATED OPENCL HEADER" << std::endl;
+  std::cout << kernelHeader;
   std::string kernel = appendKernelHeader(KERNEL, kernelHeader);
 
   // CLTune tuner parameters
@@ -194,7 +194,6 @@ void packing(std::vector<size_t> workGroupSizes,
 
 void prefetching(std::vector<size_t> workGroupSizes,
   std::vector<std::vector<int32_t>>& m1, ArrayConfig2D& m1Config) {
-  const size_t M = m1.size();
 
   for (auto workGroupSize : workGroupSizes) {
     for (auto m1BitSize : m1Config.bitSizes) {
@@ -203,13 +202,14 @@ void prefetching(std::vector<size_t> workGroupSizes,
           TunerOutput tunerOutput;
 
           std::unique_ptr<CLArray> m1Array;
+          std::cout << "WORKGORUPSIZE: " << workGroupSize << std::endl;
           if (m1Transform == Transform::ROW_MAJOR) {
-            m1Array = std::unique_ptr<RowPaddedArray>(new RowPaddedArray("A", m1BitSize, m1Prefetch, m1));
+            m1Array = std::unique_ptr<RowPaddedArray>(new RowPaddedArray("A", m1BitSize, m1Prefetch, m1, workGroupSize));
           } else if (m1Transform == Transform::COL_MAJOR) {
-            m1Array = std::unique_ptr<ColPaddedArray>(new ColPaddedArray("A", m1BitSize, m1Prefetch, m1));
+            m1Array = std::unique_ptr<ColPaddedArray>(new ColPaddedArray("A", m1BitSize, m1Prefetch, m1, workGroupSize));
           }
 
-          tunerOutput = executePrefetching(M, m1Array, workGroupSize);
+          tunerOutput = executePrefetching(m1Array, workGroupSize);
 
           // Store result
           TunerResult tunerResult;

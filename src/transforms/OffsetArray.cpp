@@ -10,7 +10,7 @@ OffsetArray::OffsetArray(std::string name, int bitSize, bool prefetch,
       // If total number of elements are less than 2^16, then we can pack offsets.
       // Offset array size may exceed local memory size if prefetching is turned on.
       offsets_ = std::unique_ptr<PackedArray>{new PackedArray(name + "_offsets", 32, false, buildOffsets(m), workgroupSizeX)};
-      packedArray_ = std::unique_ptr<PackedArray>{new PackedArray(name, bitSize, prefetch, transform(m))};
+      packedArray_ = std::unique_ptr<PackedArray>{new PackedArray(name, bitSize, prefetch, transform(m), workgroupSizeX)};
     }
 
 std::string OffsetArray::generateOpenCLCode() {

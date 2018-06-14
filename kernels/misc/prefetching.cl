@@ -10,7 +10,8 @@ __kernel void misc(const int M, const int A_Size,
 
   int acc = 0;
   for (int j = 0; j < A_Size; j++) {
-    acc += A_get(Local_A, j);
+    int e = A_get(Local_A, j);
+    acc += e;
   }
 
   C[i] = acc;

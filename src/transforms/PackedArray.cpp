@@ -20,6 +20,9 @@ PackedArray::PackedArray(std::string name, int bitSize, bool prefetch,
   		if (MAX_BITSIZE % bitSize != 0) {
   			throw std::runtime_error("Bit size must divide 32");
   		}
+  		if (prefetch_ && workgroupSize_ == 1) {
+  			throw std::runtime_error("Prefetch is ON but workgroup size is 1");
+  		}
 
   		array_ = pack(a);
   	}
